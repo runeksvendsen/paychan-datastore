@@ -1,0 +1,44 @@
+#resolver: nightly-2016-10-29
+resolver: nightly-2016-09-15
+
+nix:
+  enable: false
+  packages: [libtool, automake, lzma]
+
+packages:
+- '.'
+- location:
+    git: https://github.com/runeksvendsen/haskoin.git
+    commit: ee401b07e28f888e3b00a351e2c56b72d07e24c0
+  extra-dep: true
+  subdirs:
+    - haskoin-core
+    - haskoin-node
+    - haskoin-wallet
+- location:
+    git: https://github.com/runeksvendsen/bitcoin-payment-channel.git
+    commit: 2547df81667265413975e5926f14f716494b3066
+  extra-dep: true
+- location:
+    git: https://github.com/brendanhay/gogol.git
+    commit: c744fee403bbe7bbdadcf3fa67037ba11004f359
+  extra-dep: true
+  subdirs:
+    - gogol
+    - core
+    - gogol-datastore
+
+
+extra-deps:
+- haskoin-core-0.4.0
+- murmur3-1.0.3
+- pbkdf-1.1.1.1
+- secp256k1-0.4.6
+
+
+# Override default flag values for local packages and extra-deps
+flags: {}
+
+# Extra package databases containing global packages
+extra-package-dbs: []
+

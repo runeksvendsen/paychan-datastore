@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass, GADTs, FlexibleContexts, DataKinds, RecordWildCards #-}
-module Main where
+module Test where
 
 import           Types
 import           DB.Mutate
@@ -25,44 +25,26 @@ import           Data.String.Conversions          (cs)
 import qualified Network.HTTP.Conduit as HTTP
 
 
-
-
-data ChannelOp =
-    CreateChan  Pay.RecvPayChan
-  | DeleteChan  Pay.SendPubKey
-  | BeginPay    Pay.SendPubKey          -- Tx begin, lookup
-  | FinishPay   Pay.RecvPayChan TxId    -- Tx commit
-  | AbortPay    TxId                    -- Tx rollback
-
-
-
-
-data UpdateResult = Updated | NotUpdated deriving Show
-
-
 projectId = "cloudstore-test"
 payCount = 25
+
 
 main :: IO ()
 main = do
     putStrLn $ "Using project: " ++ cs projectId
     -- Request setup
-    man    <- HTTP.newManager HTTP.tlsManagerSettings
-    cred   <- getApplicationDefault man
     logger <- Google.newLogger Google.Error stderr
     env    <- Google.newEnv <&> (Google.envLogger .~ logger) . Google.allow cloudPlatformScope
---                 Google.allow
     -- Gen
     amountList <- map fromIntegral <$> generate (vectorOf payCount (choose (0, 100) :: Gen Integer))
-    print amountList
     (arbPair,_) <- fmap head $ sample' $ Pay.mkChanPairInitAmount (head amountList)
     let (Pay.ChannelPairResult{..}, payAmtLst) = Pay.runChanPair arbPair (tail amountList)
     -- TestDB
     let sampleRecvChan = Pay.recvChan resInitPair
-    let sampleKey = Pay.getSenderPubKey sampleRecvChan
+        sampleKey = Pay.getSenderPubKey sampleRecvChan
     putStrLn $ "Creating state for channel: " ++ showJsonStr (Pay.getSenderPK sampleKey)
     createChan env sampleRecvChan
-    -- Lookup + safe update or rollback
+    -- Safe lookup + update/rollback
     res <- M.forM (reverse $ init resPayList) (doPayment env sampleKey)
     putStrLn $ "Done! Executed " ++ show (length res) ++
         " payments. payLst length: " ++ show (length payAmtLst)

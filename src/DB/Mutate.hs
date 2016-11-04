@@ -14,9 +14,7 @@ import           Control.Lens ((?~), (&), (.~))
 
 
 -- |Delete DB item. Fail if item doesn't exist.
-deleteChan ::
-            ( MonadGoogle s m
-            , HasScope s CommitResponse)
+deleteChan :: (MonadGoogle s m)
            => ProjectId
            -> TxId
            -> Pay.SendPubKey
@@ -32,8 +30,7 @@ deleteChan projectId tx key =
 
 
 -- |Create new DB item. Fail if item already exists.
-createChan :: (MonadGoogle s m
-             , HasScope s CommitResponse)
+createChan :: (MonadGoogle s m)
            => ProjectId
            -> TxId
            -> Pay.RecvPayChan

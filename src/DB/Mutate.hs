@@ -13,7 +13,6 @@ import           Control.Lens ((?~), (&), (.~))
 
 
 
--- |Delete DB item. Fail if item doesn't exist.
 deleteChan :: (MonadGoogle s m)
            => ProjectId
            -> TxId
@@ -23,13 +22,13 @@ deleteChan projectId tx key =
     let chanDeleteRequest = commitRequest
             & crMode ?~ Transactional
             & crTransaction ?~ tx
-            & crMutations .~ [ mutation & mDelete ?~ State.mkKey projectId key
-                             , mutation & mDelete ?~ Open.mkKey projectId key ]
+            & crMutations .~
+                [ mutation & mDelete ?~ State.mkKey projectId key
+                , mutation & mDelete ?~ Open.mkKey  projectId key ]
     in
         Google.send (projectsCommit chanDeleteRequest projectId)
 
 
--- |Create new DB item. Fail if item already exists.
 createChan :: (MonadGoogle s m)
            => ProjectId
            -> TxId
@@ -39,8 +38,9 @@ createChan projectId tx chan =
     let chanInsertRequest = commitRequest
             & crMode ?~ Transactional
             & crTransaction ?~ tx
-            & crMutations .~ [ mutation & mInsert ?~ State.mkEntity projectId chan
-                             , mutation & mInsert ?~ Open.mkEntity projectId chan ]
+            & crMutations .~
+                [ mutation & mInsert ?~ State.mkEntity projectId chan
+                , mutation & mInsert ?~ Open.mkEntity  projectId chan ]
     in
         Google.send (projectsCommit chanInsertRequest projectId)
 

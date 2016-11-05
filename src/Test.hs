@@ -35,8 +35,8 @@ main = do
     tstDataLst <- M.replicateM numThreads $ genTestData count
     -- Go!
     putStrLn . unlines $ [ "Using project: " ++ cs pid
-                         , "Thread count: " ++ show threadCount
-                         , "Executing " ++ show count ++ " payments per thread..." ]
+                         , "Thread count : " ++ show threadCount
+                         , "Payment count: " ++ show count ++ " (per thread)" ]
     numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->
         runPaymentTest pid storeEnv tstData
     putStrLn $ "\n\nDone! Executed " ++ show (sum numPayLst) ++ " payments."

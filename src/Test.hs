@@ -39,15 +39,6 @@ runPaymentTest pid numPayments = do
     runResourceT . runGoogle (storeEnv :: Env '[AuthDatastore]) $
         testDB pid tstData
 
-defaultAppDatastoreEnv :: IO (Env '[AuthDatastore])
-defaultAppDatastoreEnv = do
-    manager <- HTTP.newManager HTTP.tlsManagerSettings
-    logger <- Google.newLogger Google.Error stderr
-    Google.newEnv <&>
-        (envLogger .~ logger) .
-        (envScopes .~ datastoreScope) .
-        (envManager .~ manager)
-
 testDB :: ( MonadCatch m
           , MonadGoogle '[AuthDatastore] m
           ,    HasScope '[AuthDatastore] BeginTransactionResponse
@@ -63,6 +54,15 @@ testDB pid Pay.ChannelPairResult{..} = do
     -- Safe lookup + update/rollback
     res <- M.forM paymentList (doPayment pid sampleKey)
     return $ length res
+
+defaultAppDatastoreEnv :: IO (Env '[AuthDatastore])
+defaultAppDatastoreEnv = do
+    manager <- HTTP.newManager HTTP.tlsManagerSettings
+    logger <- Google.newLogger Google.Error stderr
+    Google.newEnv <&>
+        (envLogger .~ logger) .
+        (envScopes .~ datastoreScope) .
+        (envManager .~ manager)
 
 genTestData numPayments = do
     amountList <- map fromIntegral <$> generate

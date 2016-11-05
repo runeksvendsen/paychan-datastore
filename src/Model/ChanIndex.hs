@@ -2,18 +2,13 @@
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass, FlexibleContexts #-}
 module Model.ChanIndex where
 
-import           Types
-import           Network.Google.Datastore
+import           Util
 import qualified Data.Bitcoin.PaymentChannel.Test as Pay
-import           Control.Lens
-import qualified Data.Aeson                     as JSON
 import qualified Data.ByteString.Base16         as B16
-import qualified Data.Text                      as T
 import qualified Data.Serialize                 as Bin
 import           Data.String.Conversions          (cs)
 import qualified Data.HashMap.Strict            as Map
 import           Data.Maybe                       (listToMaybe, fromMaybe)
-import           Data.Int                         (Int64)
 
 
 mkPartitionId :: ProjectId -> PartitionId

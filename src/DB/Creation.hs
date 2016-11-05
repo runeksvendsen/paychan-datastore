@@ -11,9 +11,9 @@ import qualified Model.ChanIndex     as Open
 
 
 insertChan :: ( MonadGoogle '[AuthDatastore] m
-              ,    HasScope '[AuthDatastore] BeginTransactionResponse
-              ,    HasScope '[AuthDatastore] RollbackResponse
-              ,    HasScope '[AuthDatastore] CommitResponse )
+              ,    HasScope '[AuthDatastore] ProjectsBeginTransaction
+              ,    HasScope '[AuthDatastore] ProjectsRollback
+              ,    HasScope '[AuthDatastore] ProjectsCommit )
            => ProjectId
            -> RecvPayChan
            -> m CommitResponse
@@ -25,9 +25,9 @@ insertChan projectId chan =
                 , mutation & mInsert ?~ Open.mkEntity  projectId chan ]
 
 removeChan :: ( MonadGoogle '[AuthDatastore] m
-              ,    HasScope '[AuthDatastore] BeginTransactionResponse
-              ,    HasScope '[AuthDatastore] RollbackResponse
-              ,    HasScope '[AuthDatastore] CommitResponse )
+              ,    HasScope '[AuthDatastore] ProjectsBeginTransaction
+              ,    HasScope '[AuthDatastore] ProjectsRollback
+              ,    HasScope '[AuthDatastore] ProjectsCommit )
            => ProjectId
            -> SendPubKey
            -> m CommitResponse
@@ -39,9 +39,9 @@ removeChan projectId key =
                 , mutation & mDelete ?~ Open.mkKey  projectId key ]
 
 runReqWithTx :: ( MonadGoogle '[AuthDatastore] m
-              ,    HasScope '[AuthDatastore] BeginTransactionResponse
-              ,    HasScope '[AuthDatastore] RollbackResponse
-              ,    HasScope '[AuthDatastore] CommitResponse )
+              ,    HasScope '[AuthDatastore] ProjectsBeginTransaction
+              ,    HasScope '[AuthDatastore] ProjectsRollback
+              ,    HasScope '[AuthDatastore] ProjectsCommit )
              => ProjectId -> CommitRequest -> m CommitResponse
 runReqWithTx pid commitReq =
     withTx pid ( const $ return ((), Just commitReq) ) >>=

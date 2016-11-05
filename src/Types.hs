@@ -27,7 +27,3 @@ type ProjectId = T.Text
 
 type AuthCloudPlatform = "https://www.googleapis.com/auth/cloud-platform"
 type AuthDatastore = "https://www.googleapis.com/auth/datastore"
--- type AuthPlatform = '[AuthPlatform']
--- type AuthDatastore = '[AuthDatastore']
--- type '[AuthPlatform,AuthDatastore] = '[AuthPlatform,AuthDatastore]
--- type AuthStoreFull = '[AuthPlatform,AuthDatastore]

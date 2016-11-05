@@ -17,9 +17,9 @@ import qualified Control.Monad.Catch as      Catch
 --   "f".
 withTx :: ( MonadCatch m
           , MonadGoogle '[AuthDatastore] m
-          ,    HasScope '[AuthDatastore] BeginTransactionResponse
-          ,    HasScope '[AuthDatastore] RollbackResponse
-          ,    HasScope '[AuthDatastore] CommitResponse )
+          ,    HasScope '[AuthDatastore] ProjectsBeginTransaction
+          ,    HasScope '[AuthDatastore] ProjectsRollback
+          ,    HasScope '[AuthDatastore] ProjectsCommit )
        => ProjectId
        -> (TxId -> m (a, Maybe CommitRequest))
        -> m (a, Maybe CommitResponse)
@@ -34,7 +34,7 @@ withTx pid f =
 
 -- |Rollback. Finish the transaction without doing anything.
 txRollback :: ( MonadGoogle '[AuthDatastore] m
-              ,    HasScope '[AuthDatastore] RollbackResponse )
+              ,    HasScope '[AuthDatastore] ProjectsRollback )
            => ProjectId -> TxId -> m RollbackResponse
 txRollback projectId tx =
     Google.send (projectsRollback rollbackReq projectId)
@@ -44,7 +44,7 @@ txRollback projectId tx =
 
 -- |Commit. Finish the transaction with an update.
 txCommit :: ( MonadGoogle '[AuthDatastore] m
-            ,    HasScope '[AuthDatastore] CommitResponse )
+            ,    HasScope '[AuthDatastore] ProjectsCommit )
          => ProjectId
          -> TxId
          -> CommitRequest
@@ -58,7 +58,7 @@ txCommit pid tx commReq =
 -- |Begin transaction. The returned handle must be released safely after use,
 --   by doing either a commit or a rollback.
 txBeginUnsafe :: ( MonadGoogle '[AuthDatastore] m
-                 ,    HasScope '[AuthDatastore] BeginTransactionResponse )
+                 ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
               => ProjectId
               -> m TxId
 txBeginUnsafe projectId = do

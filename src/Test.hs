@@ -41,10 +41,10 @@ runPaymentTest pid numPayments = do
 
 testDB :: ( MonadCatch m
           , MonadGoogle '[AuthDatastore] m
-          ,    HasScope '[AuthDatastore] BeginTransactionResponse
-          ,    HasScope '[AuthDatastore] LookupResponse
-          ,    HasScope '[AuthDatastore] RollbackResponse
-          ,    HasScope '[AuthDatastore] CommitResponse )
+          ,    HasScope '[AuthDatastore] ProjectsBeginTransaction
+          ,    HasScope '[AuthDatastore] ProjectsLookup
+          ,    HasScope '[AuthDatastore] ProjectsRollback
+          ,    HasScope '[AuthDatastore] ProjectsCommit )
        => ProjectId -> Pay.ChannelPairResult -> m Int
 testDB pid Pay.ChannelPairResult{..} = do
     let sampleRecvChan = Pay.recvChan resInitPair
@@ -73,10 +73,10 @@ genTestData numPayments = do
 
 doPayment :: ( MonadCatch m
              , MonadGoogle '[AuthDatastore] m
-             ,    HasScope '[AuthDatastore] BeginTransactionResponse
-             ,    HasScope '[AuthDatastore] LookupResponse
-             ,    HasScope '[AuthDatastore] RollbackResponse
-             ,    HasScope '[AuthDatastore] CommitResponse )
+             ,    HasScope '[AuthDatastore] ProjectsBeginTransaction
+             ,    HasScope '[AuthDatastore] ProjectsLookup
+             ,    HasScope '[AuthDatastore] ProjectsRollback
+             ,    HasScope '[AuthDatastore] ProjectsCommit )
           => ProjectId
           -> Pay.SendPubKey
           -> Pay.FullPayment

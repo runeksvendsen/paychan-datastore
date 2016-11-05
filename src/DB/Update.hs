@@ -25,10 +25,10 @@ import           Data.Maybe                 (fromMaybe)
 --  Throws an exception if the channel doesn't exist.
 withDBState :: ( MonadCatch m
                , MonadGoogle '[AuthDatastore] m
-               ,    HasScope '[AuthDatastore] BeginTransactionResponse
-               ,    HasScope '[AuthDatastore] LookupResponse
-               ,    HasScope '[AuthDatastore] RollbackResponse
-               ,    HasScope '[AuthDatastore] CommitResponse )
+               ,    HasScope '[AuthDatastore] ProjectsBeginTransaction
+               ,    HasScope '[AuthDatastore] ProjectsLookup
+               ,    HasScope '[AuthDatastore] ProjectsRollback
+               ,    HasScope '[AuthDatastore] ProjectsCommit )
             => ProjectId
             -> SendPubKey
             -> (RecvPayChan -> IO (Either PayChanError RecvPayChan))

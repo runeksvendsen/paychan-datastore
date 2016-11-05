@@ -84,3 +84,14 @@ test-suite test-datastore
                        , monad-control
                        , transformers
                        -- test-framework, test-framework-quickcheck2,
+
+  other-modules:            DB
+                            DB.Creation
+                            DB.Lookup
+                            DB.Tx
+                            DB.Types
+                            DB.Update
+                            Model.ChanIndex
+                            Model.PayState
+                            Types
+                            Util

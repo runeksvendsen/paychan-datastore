@@ -14,7 +14,6 @@ import           Types
 import           Control.Monad.IO.Class     (liftIO)
 
 import qualified Control.Exception as Except
-import qualified Control.Monad.Catch as      Catch
 import           Control.Lens
 import           Data.Maybe                    (fromMaybe)
 import           Data.String.Conversions          (cs)

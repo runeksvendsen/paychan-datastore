@@ -13,6 +13,8 @@ import           Test.QuickCheck            (Gen, sample', vectorOf, choose, gen
 
 import qualified Network.HTTP.Conduit as HTTP
 import           Network.Google as Google
+import qualified Control.Concurrent.Async as Async
+
 
 
 projectId :: ProjectId
@@ -21,30 +23,29 @@ projectId = "cloudstore-test"
 payCount :: Word
 payCount = 100
 
+threadCount :: Word
+threadCount = 5
 
 main :: IO ()
 main = do
     let count = payCount
     let pid = projectId
-    putStrLn . unlines $ [ "Using project: " ++ cs pid,
-                           "Executing " ++ show count ++ " payments..." ]
-    numPayRes <- runPaymentTest pid count
-    putStrLn $ "\nDone! Executed " ++ show numPayRes ++ " payments."
+    let numThreads = fromIntegral threadCount
+    storeEnv   <- defaultAppDatastoreEnv
+    tstDataLst <- M.replicateM numThreads $ genTestData count
+    -- Go!
+    putStrLn . unlines $ [ "Using project: " ++ cs pid
+                         , "Thread count: " ++ show threadCount
+                         , "Executing " ++ show count ++ " payments per thread..." ]
+    numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->
+        runPaymentTest pid storeEnv tstData
+    putStrLn $ "\n\nDone! Executed " ++ show (sum numPayLst) ++ " payments."
 
-runPaymentTest :: ProjectId -> Word -> IO Int
-runPaymentTest pid numPayments = do
-    storeEnv <- defaultAppDatastoreEnv
-    tstData  <- genTestData numPayments
-    -- Run
-    runResourceT . runGoogle (storeEnv :: Env '[AuthDatastore]) $
-        testDB pid tstData
+runPaymentTest :: ProjectId -> Env '[AuthDatastore] -> Pay.ChannelPairResult -> IO Int
+runPaymentTest pid env tstData = runResourceT . runGoogle env $ testDB pid tstData
 
 testDB :: ( MonadCatch m
-          , MonadGoogle '[AuthDatastore] m
-          ,    HasScope '[AuthDatastore] ProjectsBeginTransaction
-          ,    HasScope '[AuthDatastore] ProjectsLookup
-          ,    HasScope '[AuthDatastore] ProjectsRollback
-          ,    HasScope '[AuthDatastore] ProjectsCommit )
+          , MonadGoogle '[AuthDatastore] m )
        => ProjectId -> Pay.ChannelPairResult -> m Int
 testDB pid Pay.ChannelPairResult{..} = do
     let sampleRecvChan = Pay.recvChan resInitPair
@@ -72,12 +73,7 @@ genTestData numPayments = do
     let (chanPair, _) = Pay.runChanPair arbPair (tail amountList)
     return chanPair
 
-doPayment :: ( MonadCatch m
-             , MonadGoogle '[AuthDatastore] m
-             ,    HasScope '[AuthDatastore] ProjectsBeginTransaction
-             ,    HasScope '[AuthDatastore] ProjectsLookup
-             ,    HasScope '[AuthDatastore] ProjectsRollback
-             ,    HasScope '[AuthDatastore] ProjectsCommit )
+doPayment :: ( MonadGoogle '[AuthDatastore] m )
           => ProjectId
           -> Pay.SendPubKey
           -> Pay.FullPayment

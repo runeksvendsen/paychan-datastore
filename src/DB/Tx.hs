@@ -17,9 +17,7 @@ import qualified Control.Monad.Catch as      Catch
 --   "f".
 withTx :: ( MonadCatch m
           , MonadGoogle '[AuthDatastore] m
-          ,    HasScope '[AuthDatastore] ProjectsBeginTransaction
-          ,    HasScope '[AuthDatastore] ProjectsRollback
-          ,    HasScope '[AuthDatastore] ProjectsCommit )
+          ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
        => ProjectId
        -> (TxId -> m (a, Maybe CommitRequest))
        -> m (a, Maybe CommitResponse)

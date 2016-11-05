@@ -19,7 +19,7 @@ projectId :: ProjectId
 projectId = "cloudstore-test"
 
 payCount :: Word
-payCount = 25
+payCount = 100
 
 
 main :: IO ()

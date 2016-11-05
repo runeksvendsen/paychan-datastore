@@ -89,6 +89,6 @@ doPayment pid key payment =
                 putStrLn $ "recvPayment error :( " ++ show e
                 return $ Left e
             Right (a,s) -> do
-                putStrLn $ "   #### Payment received: " ++ show a ++ "  ####"
+                putStr $ " <rcv: " ++ show a ++ ">"
                 return $ Right s
 

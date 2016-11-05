@@ -25,14 +25,14 @@ payCount = 25
 main :: IO ()
 main = do
     let count = payCount
-    putStrLn . unlines $ [ "Starting channel test.",
-                           "Executing " ++ show count ++ " payments.." ]
-    numPayRes <- runPaymentTest projectId count
+    let pid = projectId
+    putStrLn . unlines $ [ "Using project: " ++ cs pid,
+                           "Executing " ++ show count ++ " payments..." ]
+    numPayRes <- runPaymentTest pid count
     putStrLn $ "Done! Executed " ++ show numPayRes ++ " payments."
 
 runPaymentTest :: ProjectId -> Word -> IO Int
 runPaymentTest pid numPayments = do
-    putStrLn $ "Using project: " ++ cs pid
     storeEnv <- defaultAppDatastoreEnv
     tstData  <- genTestData numPayments
     -- Run

@@ -36,7 +36,8 @@ runPaymentTest pid numPayments = do
     storeEnv <- defaultAppDatastoreEnv
     tstData  <- genTestData numPayments
     -- Run
-    runResourceT . runGoogle (storeEnv :: Env '[AuthDatastore]) $ testDB pid tstData
+    runResourceT . runGoogle (storeEnv :: Env '[AuthDatastore]) $
+        testDB pid tstData
 
 defaultAppDatastoreEnv :: IO (Env '[AuthDatastore])
 defaultAppDatastoreEnv = do

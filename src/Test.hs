@@ -8,7 +8,7 @@ import qualified Data.Bitcoin.PaymentChannel.Test as Pay
 
 import qualified Control.Monad as M
 import qualified Data.Time.Clock as Clock
-import           System.IO                  (stderr, hFlush)
+import           System.IO                  (stderr, stdout, hFlush)
 import           Test.QuickCheck            (Gen, sample', vectorOf, choose, generate)
 
 import qualified Network.HTTP.Conduit as HTTP
@@ -89,6 +89,6 @@ doPayment pid key payment =
                 putStrLn $ "recvPayment error :( " ++ show e
                 return $ Left e
             Right (a,s) -> do
-                putStr (" <rcv: " ++ show a ++ ">") >> hFlush stderr
+                putStr (" <rcv: " ++ show a ++ ">") >> hFlush stdout
                 return $ Right s
 

@@ -9,7 +9,7 @@ module Types
 , Pay.RecvPayChan
 , Pay.PayChanError
 , Catch.MonadCatch
-, cs
+, MonadIO
 )
 where
 
@@ -17,7 +17,7 @@ import DB.Types
 
 import qualified Data.Bitcoin.PaymentChannel.Test as Pay
 import qualified Data.Text                      as T
-import           Data.String.Conversions          (cs)
+import           Control.Monad.IO.Class     (MonadIO)
 
 import qualified Control.Monad.Catch as      Catch
 

@@ -13,7 +13,6 @@ import           Model.PayState (parseLookupRes, mkEntity)
 
 import           Network.Google as Google
 
-import           Control.Monad.IO.Class     (liftIO)
 import qualified Control.Exception        as Except
 import           Control.Exception          (throw)
 import           Data.Maybe                 (fromMaybe)

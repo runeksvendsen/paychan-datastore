@@ -29,7 +29,7 @@ main = do
     putStrLn . unlines $ [ "Using project: " ++ cs pid,
                            "Executing " ++ show count ++ " payments..." ]
     numPayRes <- runPaymentTest pid count
-    putStrLn $ "Done! Executed " ++ show numPayRes ++ " payments."
+    putStrLn $ "\nDone! Executed " ++ show numPayRes ++ " payments."
 
 runPaymentTest :: ProjectId -> Word -> IO Int
 runPaymentTest pid numPayments = do

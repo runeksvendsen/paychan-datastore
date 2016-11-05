@@ -2,43 +2,49 @@
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass, GADTs, FlexibleContexts, DataKinds, RecordWildCards #-}
 module DB.Creation where
 
+import Util
+import Network.Google as Google
+
 import           DB.Tx
 import qualified Model.PayState    as State
 import qualified Model.ChanIndex     as Open
 
-import           Network.Google as Google
-import           Network.Google.Datastore
-import           Control.Lens ((?~), (&), (.~))
 
-
--- deleteChan :: (MonadGoogle s m)
---            => ProjectId
---            -> TxId
---            -> Pay.SendPubKey
---            -> m CommitResponse
-removeChan projectId tx key =
-    let chanDeleteRequest = commitRequest
-            & crMode ?~ Transactional
-            & crTransaction ?~ tx
-            & crMutations .~
-                [ mutation & mDelete ?~ State.mkKey projectId key
-                , mutation & mDelete ?~ Open.mkKey  projectId key ]
-    in
-        txBeginUnsafe projectId >>= \tx -> Google.send
-            (projectsCommit chanDeleteRequest projectId)
-
-
--- createChan :: (MonadGoogle s m)
---            => ProjectId
---            -> Pay.RecvPayChan
---            -> m CommitResponse
+insertChan :: ( MonadGoogle '[AuthDatastore] m
+              ,    HasScope '[AuthDatastore] BeginTransactionResponse
+              ,    HasScope '[AuthDatastore] RollbackResponse
+              ,    HasScope '[AuthDatastore] CommitResponse )
+           => ProjectId
+           -> RecvPayChan
+           -> m CommitResponse
 insertChan projectId chan =
-    let mkInsertRequest tx = commitRequest
-            & crMode ?~ Transactional
-            & crTransaction ?~ tx
+    runReqWithTx projectId insertRequest
+    where insertRequest = commitRequest
             & crMutations .~
                 [ mutation & mInsert ?~ State.mkEntity projectId chan
                 , mutation & mInsert ?~ Open.mkEntity  projectId chan ]
-    in
-        txBeginUnsafe projectId >>= \tx -> Google.send
-            (projectsCommit (mkInsertRequest tx) projectId)
+
+removeChan :: ( MonadGoogle '[AuthDatastore] m
+              ,    HasScope '[AuthDatastore] BeginTransactionResponse
+              ,    HasScope '[AuthDatastore] RollbackResponse
+              ,    HasScope '[AuthDatastore] CommitResponse )
+           => ProjectId
+           -> SendPubKey
+           -> m CommitResponse
+removeChan projectId key =
+    runReqWithTx projectId  chanDeleteRequest
+    where chanDeleteRequest = commitRequest
+            & crMutations .~
+                [ mutation & mDelete ?~ State.mkKey projectId key
+                , mutation & mDelete ?~ Open.mkKey  projectId key ]
+
+runReqWithTx :: ( MonadGoogle '[AuthDatastore] m
+              ,    HasScope '[AuthDatastore] BeginTransactionResponse
+              ,    HasScope '[AuthDatastore] RollbackResponse
+              ,    HasScope '[AuthDatastore] CommitResponse )
+             => ProjectId -> CommitRequest -> m CommitResponse
+runReqWithTx pid commitReq =
+    withTx pid ( const $ return ((), Just commitReq) ) >>=
+        \(_,maybeResp) -> return $ fromMaybe
+           (throw $ InternalError "runReqWithTx: 'withTx' did not return CommitResponse")
+           maybeResp

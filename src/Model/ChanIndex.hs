@@ -74,7 +74,7 @@ encodeAsProperty _ recvChan = entityProperties $
 -- } Property conversion
 
 
--- parseLookupRes :: LookupResponse -> Maybe (Pay.SendPubKey, Version)
+-- parseLookupRes :: LookupResponse -> Maybe (Pay.SendPubKey, EntityVersion)
 -- parseLookupRes lookupRes =
 --     listToMaybe (lookupRes ^. lrFound) >>= \res ->  -- lrFound: Entities found as `ResultType.FULL` entities.
 --         case res ^. erEntity of

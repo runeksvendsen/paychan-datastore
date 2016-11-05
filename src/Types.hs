@@ -2,19 +2,32 @@
 module Types
 (
   module Types
+, module DB.Types
+-- , module Network.Google
+, module Network.Google.Datastore
+, Pay.SendPubKey
+, Pay.RecvPayChan
+, Pay.PayChanError
+, Catch.MonadCatch
 , cs
 )
 where
 
+import DB.Types
+
+import qualified Data.Bitcoin.PaymentChannel.Test as Pay
 import qualified Data.Text                      as T
 import           Data.String.Conversions          (cs)
-import           Data.Int                         (Int64)
-import qualified Data.ByteString as BS
 
+import qualified Control.Monad.Catch as      Catch
+
+import           Network.Google.Datastore
 
 type ProjectId = T.Text
-type Version = Int64
-type TxId = BS.ByteString
 
-type AuthPlatform = "https://www.googleapis.com/auth/cloud-platform"
+type AuthCloudPlatform = "https://www.googleapis.com/auth/cloud-platform"
 type AuthDatastore = "https://www.googleapis.com/auth/datastore"
+-- type AuthPlatform = '[AuthPlatform']
+-- type AuthDatastore = '[AuthDatastore']
+-- type '[AuthPlatform,AuthDatastore] = '[AuthPlatform,AuthDatastore]
+-- type AuthStoreFull = '[AuthPlatform,AuthDatastore]

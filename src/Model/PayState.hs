@@ -2,10 +2,8 @@
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 module Model.PayState where
 
-import           Types
-import           Network.Google.Datastore
+import           Util
 import qualified Data.Bitcoin.PaymentChannel.Test as Pay
-import           Control.Lens
 import qualified Data.Aeson                     as JSON
 import qualified Data.ByteString.Base16         as B16
 import qualified Data.Serialize                 as Bin
@@ -48,7 +46,7 @@ encodeAsProperty recvChan = entityProperties $
        )]
 
 decodeFromPropertyOrFail :: EntityProperties -> Pay.RecvPayChan
-decodeFromPropertyOrFail = either error id . decodeFromProperty
+decodeFromPropertyOrFail = either internalError id . decodeFromProperty
 
 decodeFromProperty :: EntityProperties -> Either String Pay.RecvPayChan
 decodeFromProperty props =
@@ -66,15 +64,18 @@ decodeFromProperty props =
 -- } Property conversion
 
 
-parseLookupRes :: LookupResponse -> Maybe (Pay.RecvPayChan, Version)
+parseLookupRes :: LookupResponse -> Maybe (Pay.RecvPayChan, EntityVersion)
 parseLookupRes lookupRes =
     listToMaybe (lookupRes ^. lrFound) >>= \res ->  -- lrFound: Entities found as `ResultType.FULL` entities.
         case res ^. erEntity of
-            Nothing  -> error "LookupResponse: Empty entityResult"
+            Nothing  -> internalError "LookupResponse: Empty entityResult"
             Just ent -> Just
-                ( decodeFromPropertyOrFail $ fromMaybe (error "LookupResponse: No properties in entity")
+                ( decodeFromPropertyOrFail $
+                    fromMaybe (internalError "LookupResponse: No properties in entity")
                     (ent ^. eProperties)
-                , fromMaybe (error "EntityResult: Entity version should be present for ResultType.FULL")
+                , fromMaybe (internalError $
+                         "CloudStore API BUG. LookupResponse: " ++
+                         "Entity version not present")
                     (res ^. erVersion)
                 )
 

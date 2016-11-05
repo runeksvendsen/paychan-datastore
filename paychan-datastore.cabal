@@ -24,13 +24,14 @@ library
   exposed-modules:
                        DB
                        DB.Creation
-                       DB.Fetch
+                       DB.Lookup
                        DB.Tx
                        DB.Types
                        DB.Update
                        Model.ChanIndex
                        Model.PayState
                        Types
+                       Util
                        Test
   other-modules:
   build-depends:       base >= 4.7 && < 5

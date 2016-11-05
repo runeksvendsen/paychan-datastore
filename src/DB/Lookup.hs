@@ -1,24 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveAnyClass, GADTs, FlexibleContexts, DataKinds #-}
-module DB.Fetch where
+module DB.Lookup where
 
-import           Types
+import           Util
 import           Model.PayState
-import qualified Data.Bitcoin.PaymentChannel.Test as Pay
 
 import           Network.Google as Google
-import           Network.Google.Datastore
-import           Control.Lens
-
 
 
 -- |Perform lookup inside transaction
-txLookup :: ( MonadGoogle s m
-            , HasScope s '["https://www.googleapis.com/auth/cloud-platform",
-                           "https://www.googleapis.com/auth/datastore"]
+txLookup :: ( MonadGoogle '[AuthDatastore] m
+            , HasScope    '[AuthDatastore] LookupResponse
             )
            => ProjectId
-           -> Pay.SendPubKey
+           -> SendPubKey
            -> TxId
            -> m LookupResponse
 txLookup projectId sendPK tx =

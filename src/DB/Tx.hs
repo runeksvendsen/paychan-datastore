@@ -1,56 +1,71 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs, FlexibleContexts, DataKinds, PolyKinds #-}
-module DB.Tx where
+module DB.Tx
+(
+  withTx
+)
+where
 
-import           Types
-import           DB.Types
-import           Model.PayState
-import qualified Data.Bitcoin.PaymentChannel.Test as Pay
-
-import           Network.Google as Google
-import           Network.Google.Datastore
-import qualified Control.Monad as M
-import qualified Control.Exception as Except
-import           Control.Monad.IO.Class (MonadIO)
-import           Control.Monad.Catch    (MonadCatch)
-import qualified Data.ByteString as BS
-import qualified Data.Time.Clock as Clock
-import           Data.Maybe                    (fromMaybe)
-import           Data.Proxy (Proxy)
-import           Control.Lens
-import           System.IO              (stderr)
-import           Test.QuickCheck (Gen, sample', vectorOf, choose, generate)
-import           Data.String.Conversions          (cs)
-
-import qualified Network.HTTP.Conduit as HTTP
+import Util
+import Network.Google as Google
+import qualified Control.Monad.Catch as      Catch
 
 
+-- |Safely acquire a transaction handle for use in a transaction.
+--  The handle will be safely released both if an exception
+--   occurs in "f", and if no 'CommitResponse' is returned by
+--   "f".
+withTx :: ( MonadCatch m
+          , MonadGoogle '[AuthDatastore] m
+          ,    HasScope '[AuthDatastore] BeginTransactionResponse
+          ,    HasScope '[AuthDatastore] RollbackResponse
+          ,    HasScope '[AuthDatastore] CommitResponse )
+       => ProjectId
+       -> (TxId -> m (a, Maybe CommitRequest))
+       -> m (a, Maybe CommitResponse)
+withTx pid f =
+    txBeginUnsafe pid >>= \tx -> do
+        let rollback = txRollback pid tx
+        (a,maybeCommReq) <- f tx `Catch.onException` rollback
+        case maybeCommReq of
+            Nothing  -> return (a,Nothing)
+            Just req -> txCommit pid tx req >>= \resp -> return (a, Just resp)
 
--- |Finish transaction without doing anything (rollback)
--- txRollback :: ( HasScope s '["https://www.googleapis.com/auth/cloud-platform"]
---               , MonadGoogle s m )
---            => ProjectId -> TxId -> m CommitResponse
+
+-- |Rollback. Finish the transaction without doing anything.
+txRollback :: ( MonadGoogle '[AuthDatastore] m
+              ,    HasScope '[AuthDatastore] RollbackResponse )
+           => ProjectId -> TxId -> m RollbackResponse
 txRollback projectId tx =
     Google.send (projectsRollback rollbackReq projectId)
   where
     rollbackReq = rollbackRequest & rrTransaction ?~ tx
 
+
+-- |Commit. Finish the transaction with an update.
+txCommit :: ( MonadGoogle '[AuthDatastore] m
+            ,    HasScope '[AuthDatastore] CommitResponse )
+         => ProjectId
+         -> TxId
+         -> CommitRequest
+         -> m CommitResponse
+txCommit pid tx commReq =
+    Google.send (projectsCommit txCommReq pid)
+  where
+    txCommReq = commReq & crMode ?~ Transactional & crTransaction ?~ tx
+
+
 -- |Begin transaction. The returned handle must be released safely after use,
 --   by doing either a commit or a rollback.
--- txBeginUnsafe :: ( MonadGoogle s m
---                  , HasScope s TxId    )
---               => ProjectId
---               -> m TxId
+txBeginUnsafe :: ( MonadGoogle '[AuthDatastore] m
+                 ,    HasScope '[AuthDatastore] BeginTransactionResponse )
+              => ProjectId
+              -> m TxId
 txBeginUnsafe projectId = do
     txBeginRes <- Google.send (projectsBeginTransaction beginTransactionRequest projectId)
     case txBeginRes ^. btrTransaction of
             Just tid -> return tid
-            Nothing  -> Except.throw . InternalError $
-                "CloudStore API BUG: Transaction identifier should always be present"
+            Nothing  -> Util.internalError $
+                "CloudStore API BUG. BeginTransactionResponse: " ++
+                "Transaction identifier not present"
 
-
---    :: ( MonadGoogle s m
---       , HasScope s '["https://www.googleapis.com/auth/cloud-platform",
---                      "https://www.googleapis.com/auth/datastore"]    )
---       => ProjectId
---       -> m TxId

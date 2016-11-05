@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 module Types
 (
   module Types
@@ -11,9 +12,9 @@ import           Data.Int                         (Int64)
 import qualified Data.ByteString as BS
 
 
-
-data UpdateResult = Updated | NotUpdated deriving Show
-
 type ProjectId = T.Text
 type Version = Int64
 type TxId = BS.ByteString
+
+type AuthPlatform = "https://www.googleapis.com/auth/cloud-platform"
+type AuthDatastore = "https://www.googleapis.com/auth/datastore"

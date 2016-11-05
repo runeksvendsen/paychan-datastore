@@ -1,11 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric, DeriveAnyClass, GADTs, FlexibleContexts, DataKinds, RecordWildCards #-}
+{-# LANGUAGE GADTs, FlexibleContexts, DataKinds, PolyKinds #-}
 module DB.Tx where
 
-
 import           Types
-import           DB.Mutate
-import           DB.Fetch
+import           DB.Types
 import           Model.PayState
 import qualified Data.Bitcoin.PaymentChannel.Test as Pay
 
@@ -28,67 +26,31 @@ import qualified Network.HTTP.Conduit as HTTP
 
 
 
-
-data UpdateResult = Updated | NotUpdated deriving Show
-data DBException  =
-    NoSuchChannel
-  | InternalError String
-        deriving Show
-
-
--- |Provide a function which can do anything it wants with a RecvPayChan from the DB,
---  and return either a Left to indicate that no update should take place, or Right to
---  indicate that the DB entity should be udated to the provided value.
---  Throws an exception if the channel doesn't exist.
-withDBState sendPK f = do
-    tx <- txBeginUnsafe
-    (eitherRes,oldVer) <- errorOnNothing <$>
-        (`Except.onException` rollback tx) $ lookupEval tx
-    updStatus <- case eitherRes of
-        Left _        -> txRollback tx >> return NotUpdated
-        Right newChan -> dbStateUpdate tx oldVer newChan
-    return (eitherRes, updStatus)
-  where
-    lookupEval tx = do
-        maybeRes <- txLookup sendPK tx
-        case maybeRes of
-            Just (chan,ver) -> return Just (f chan,ver)
-            Nothing         -> return Nothing
-    rollback tx = putStrLn "withDBState: Exception. Running cleanup" >> txRollback env tx
-    errorOnNothing = maybe (Except.throw NoSuchChannel)
-
--- |Finish transaction by updating DB item (commit)
-dbStateUpdate tx prevVer recvChan = do
-    commRes <- txCommit tx recvChan
-    case commRes ^. crMutationResults of
-        [r]       -> return $ if getMRVersion r > prevVer then Updated else NotUpdated
-        []        -> return NotUpdated
-        n@(_:_:_) -> throw . InternalError $
-            "DB BUG? More than one item was updated by 'txCommitUpdate': " ++ show n
-  where
-    getMRVersion r = fromMaybe (throw . InternalError $ "MutationResult: empty version field") $
-        r ^. mrVersion
-
--- |Finish with update
-txCommit tx chan =
-    Google.send (projectsCommit comm projectId)
-  where
-    comm = commitRequest
-        & crMutations .~ [mutation & mUpdate ?~ mkEntity projectId chan]
-        & crMode ?~ Transactional
-        & crTransaction ?~ tx
-
 -- |Finish transaction without doing anything (rollback)
-txRollback tx =
+-- txRollback :: ( HasScope s '["https://www.googleapis.com/auth/cloud-platform"]
+--               , MonadGoogle s m )
+--            => ProjectId -> TxId -> m CommitResponse
+txRollback projectId tx =
     Google.send (projectsRollback rollbackReq projectId)
   where
     rollbackReq = rollbackRequest & rrTransaction ?~ tx
 
 -- |Begin transaction. The returned handle must be released safely after use,
 --   by doing either a commit or a rollback.
-txBeginUnsafe = do
+-- txBeginUnsafe :: ( MonadGoogle s m
+--                  , HasScope s TxId    )
+--               => ProjectId
+--               -> m TxId
+txBeginUnsafe projectId = do
     txBeginRes <- Google.send (projectsBeginTransaction beginTransactionRequest projectId)
     case txBeginRes ^. btrTransaction of
             Just tid -> return tid
-            Nothing  -> throw . InternalError $
+            Nothing  -> Except.throw . InternalError $
                 "CloudStore API BUG: Transaction identifier should always be present"
+
+
+--    :: ( MonadGoogle s m
+--       , HasScope s '["https://www.googleapis.com/auth/cloud-platform",
+--                      "https://www.googleapis.com/auth/datastore"]    )
+--       => ProjectId
+--       -> m TxId

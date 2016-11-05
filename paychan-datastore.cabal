@@ -21,12 +21,16 @@ library
   hs-source-dirs:      src
   default-language:    Haskell2010
 
-  exposed-modules:     Types
+  exposed-modules:
+                       DB
+                       DB.Creation
+                       DB.Fetch
+                       DB.Tx
+                       DB.Types
+                       DB.Update
                        Model.ChanIndex
                        Model.PayState
-                       DB.Fetch
-                       DB.Mutate
-                       DB.Tx
+                       Types
                        Test
   other-modules:
   build-depends:       base >= 4.7 && < 5
@@ -47,6 +51,8 @@ library
                      , time
                      , http-conduit
                      , exceptions
+                     , monad-control
+                     , transformers
 
 test-suite test-datastore
   type:                 exitcode-stdio-1.0
@@ -74,4 +80,6 @@ test-suite test-datastore
                        , time
                        , http-conduit
                        , exceptions
+                       , monad-control
+                       , transformers
                        -- test-framework, test-framework-quickcheck2,

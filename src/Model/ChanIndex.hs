@@ -41,45 +41,50 @@ encodeAsProperty _ recvChan = entityProperties $
        , value &
          vExcludeFromIndexes ?~ False &
            vIntegerValue ?~ fromIntegral (Pay.getFundingAmount recvChan)
+       ),
+       ( "expiration_date"
+       , value &
+         vExcludeFromIndexes ?~ False &
+            vIntegerValue ?~ fromIntegral (Pay.toWord32 $ Pay.getExpirationDate recvChan)
        )
        ]
 
-decodeFromPropertyOrFail :: EntityProperties -> Pay.SendPubKey
-decodeFromPropertyOrFail = either error id . decodeFromProperty
+-- decodeFromPropertyOrFail :: EntityProperties -> Pay.SendPubKey
+-- decodeFromPropertyOrFail = either error id . decodeFromProperty
 
-decodeFromProperty :: EntityProperties -> Either String Pay.SendPubKey
-decodeFromProperty props =
-    case Map.lookup "key" map of
-        Just val ->
-            case val ^. vKeyValue of
-                Just key ->
-                    maybe
-                        (Left "No PathList in OpenChanIndex EntityProperties")
-                        (Right . (^. peName))
-                        (listToMaybe $ key ^. kPath) >>=
-                            maybe
-                            (Left "Missing 'name' field in OpenChanIndex EnityProperties")
-                            decodeHex
-                Nothing -> Left "Expected Key value in 'key'."
-        Nothing -> Left "no 'key' key in OpenChanIndex EntityProperties"
-  where
-    map = props ^. epAddtional
-    decodeHex = either (\e -> Left $ "Failed to decode SendPubKey from hex: " ++ e) Right .
-            Bin.decode . fst . B16.decode . cs
+-- decodeFromProperty :: EntityProperties -> Either String Pay.SendPubKey
+-- decodeFromProperty props =
+--     case Map.lookup "key" map of
+--         Just val ->
+--             case val ^. vKeyValue of
+--                 Just key ->
+--                     maybe
+--                         (Left "No PathList in OpenChanIndex EntityProperties")
+--                         (Right . (^. peName))
+--                         (listToMaybe $ key ^. kPath) >>=
+--                             maybe
+--                             (Left "Missing 'name' field in OpenChanIndex EnityProperties")
+--                             decodeHex
+--                 Nothing -> Left "Expected Key value in 'key'."
+--         Nothing -> Left "no 'key' key in OpenChanIndex EntityProperties"
+--   where
+--     map = props ^. epAddtional
+--     decodeHex = either (\e -> Left $ "Failed to decode SendPubKey from hex: " ++ e) Right .
+--             Bin.decode . fst . B16.decode . cs
 -- } Property conversion
 
 
-parseLookupRes :: LookupResponse -> Maybe (Pay.SendPubKey, Version)
-parseLookupRes lookupRes =
-    listToMaybe (lookupRes ^. lrFound) >>= \res ->  -- lrFound: Entities found as `ResultType.FULL` entities.
-        case res ^. erEntity of
-            Nothing  -> error "LookupResponse: Empty entityResult"
-            Just ent -> Just
-                ( decodeFromPropertyOrFail $ fromMaybe (error "LookupResponse: No properties in entity")
-                    (ent ^. eProperties)
-                , fromMaybe (error "EntityResult: Entity version should be present for ResultType.FULL")
-                    (res ^. erVersion)
-                )
-
-showJsonStr :: JSON.ToJSON a => a -> String
-showJsonStr = cs . JSON.encode
+-- parseLookupRes :: LookupResponse -> Maybe (Pay.SendPubKey, Version)
+-- parseLookupRes lookupRes =
+--     listToMaybe (lookupRes ^. lrFound) >>= \res ->  -- lrFound: Entities found as `ResultType.FULL` entities.
+--         case res ^. erEntity of
+--             Nothing  -> error "LookupResponse: Empty entityResult"
+--             Just ent -> Just
+--                 ( decodeFromPropertyOrFail $ fromMaybe (error "LookupResponse: No properties in entity")
+--                     (ent ^. eProperties)
+--                 , fromMaybe (error "EntityResult: Entity version should be present for ResultType.FULL")
+--                     (res ^. erVersion)
+--                 )
+--
+-- showJsonStr :: JSON.ToJSON a => a -> String
+-- showJsonStr = cs . JSON.encode

@@ -1,24 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass, GADTs, FlexibleContexts, DataKinds, RecordWildCards #-}
-module DB.Mutate where
+module DB.Creation where
 
-import           Types
+import           DB.Tx
 import qualified Model.PayState    as State
 import qualified Model.ChanIndex     as Open
-import qualified Data.Bitcoin.PaymentChannel.Test as Pay
-import qualified Data.Text                      as T
+
 import           Network.Google as Google
 import           Network.Google.Datastore
 import           Control.Lens ((?~), (&), (.~))
 
 
-
-deleteChan :: (MonadGoogle s m)
-           => ProjectId
-           -> TxId
-           -> Pay.SendPubKey
-           -> m CommitResponse
-deleteChan projectId tx key =
+-- deleteChan :: (MonadGoogle s m)
+--            => ProjectId
+--            -> TxId
+--            -> Pay.SendPubKey
+--            -> m CommitResponse
+removeChan projectId tx key =
     let chanDeleteRequest = commitRequest
             & crMode ?~ Transactional
             & crTransaction ?~ tx
@@ -26,22 +24,21 @@ deleteChan projectId tx key =
                 [ mutation & mDelete ?~ State.mkKey projectId key
                 , mutation & mDelete ?~ Open.mkKey  projectId key ]
     in
-        Google.send (projectsCommit chanDeleteRequest projectId)
+        txBeginUnsafe projectId >>= \tx -> Google.send
+            (projectsCommit chanDeleteRequest projectId)
 
 
-createChan :: (MonadGoogle s m)
-           => ProjectId
-           -> TxId
-           -> Pay.RecvPayChan
-           -> m CommitResponse
-createChan projectId tx chan =
-    let chanInsertRequest = commitRequest
+-- createChan :: (MonadGoogle s m)
+--            => ProjectId
+--            -> Pay.RecvPayChan
+--            -> m CommitResponse
+insertChan projectId chan =
+    let mkInsertRequest tx = commitRequest
             & crMode ?~ Transactional
             & crTransaction ?~ tx
             & crMutations .~
                 [ mutation & mInsert ?~ State.mkEntity projectId chan
                 , mutation & mInsert ?~ Open.mkEntity  projectId chan ]
     in
-        Google.send (projectsCommit chanInsertRequest projectId)
-
-
+        txBeginUnsafe projectId >>= \tx -> Google.send
+            (projectsCommit (mkInsertRequest tx) projectId)

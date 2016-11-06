@@ -53,7 +53,7 @@ testDB pid Pay.ChannelPairResult{..} = do
         paymentList = reverse $ init resPayList
     DB.insertChan pid sampleRecvChan
     -- Safe lookup + update/rollback
-    liftIO $ putStr "   Payments received:"
+--     liftIO $ putStr "   Payments received:"
     res <- M.forM paymentList (doPayment pid sampleKey)
     return $ length res
 
@@ -83,7 +83,7 @@ doPayment pid key payment =
         now <- Clock.getCurrentTime
         case Pay.recvPayment now recvChan payment of
             Right (a,s) -> do
-                putStr (" " ++ show (toInteger a)) >> hFlush stdout
+--                 putStr (" " ++ show (toInteger a)) >> hFlush stdout
                 return $ Right s
             Left e -> do
                 putStrLn $ "recvPayment error :( " ++ show e

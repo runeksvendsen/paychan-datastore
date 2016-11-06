@@ -32,7 +32,6 @@ withDBState :: ( MonadCatch m
 withDBState pid sendPK f = do
     (eitherRes,_) <- withTx pid $ \tx -> do
         (chan,_) <- (errorOnNothing . parseLookupRes) <$> txLookup pid sendPK tx
-
         eitherRes <- liftIO (f chan)
         case eitherRes of
             Left _        -> return (eitherRes, Nothing)

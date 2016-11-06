@@ -10,8 +10,7 @@ import           Network.Google as Google
 
 -- |Perform lookup inside transaction
 txLookup :: ( MonadGoogle '[AuthDatastore] m
-            , HasScope    '[AuthDatastore] ProjectsLookup
-            )
+            , HasScope    '[AuthDatastore] ProjectsLookup )
            => ProjectId
            -> SendPubKey
            -> TxId

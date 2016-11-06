@@ -26,7 +26,7 @@ withTx pid f =
         let rollback = txRollback pid tx
         (a,maybeCommReq) <- f tx `Catch.onException` rollback
         case maybeCommReq of
-            Nothing  -> return (a,Nothing)
+            Nothing  -> rollback >> return (a,Nothing)
             Just req -> txCommit pid tx req >>= \resp -> return (a, Just resp)
 
 

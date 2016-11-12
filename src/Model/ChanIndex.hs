@@ -8,8 +8,12 @@ import qualified Data.ByteString.Base16         as B16
 import qualified Data.Serialize                 as Bin
 import           Data.String.Conversions          (cs)
 import qualified Data.HashMap.Strict            as Map
+import qualified Data.Text                      as T
 import           Data.Maybe                       (listToMaybe, fromMaybe)
 
+
+kindName :: T.Text
+kindName = "OpenChanIndex"
 
 mkPartitionId :: ProjectId -> PartitionId
 mkPartitionId projectId = partitionId &
@@ -19,9 +23,26 @@ mkPartitionId projectId = partitionId &
 mkKey :: ProjectId -> Pay.SendPubKey -> Key
 mkKey projectId sendPK = key &
     kPartitionId ?~ mkPartitionId projectId &
-    kPath .~ [pathElement & peKind ?~ "OpenChanIndex" & peName ?~ encodeHex sendPK]
+    kPath .~ [pathElement & peKind ?~ kindName & peName ?~ encodeHex sendPK]
   where
     encodeHex = cs . B16.encode . Bin.encode
+
+
+keyFromEntity :: Entity -> Either String Pay.SendPubKey
+keyFromEntity ent = fmapL ("ChanIndex: " ++) $
+    case ent ^. eKey of
+        Nothing -> Left "No Key in Entity"
+        Just key ->
+            case key ^. kPath of
+                [] -> Left "No PathElement in Entity Key"
+                n@(_:_:_)  -> Left $ "Multiple PathElements in Entity Key: " ++ show n
+                [pe] ->
+                    case pe ^. peName of
+                        Nothing   -> Left "No Name in PathElement"
+                        Just name -> decodeHex name
+  where
+    decodeHex = fmapL ("Error parsing SendPubKey from hex: " ++) .
+            Bin.decode . fst . B16.decode . cs
 
 mkEntity :: ProjectId -> Pay.RecvPayChan -> Entity
 mkEntity projectId recvChan = entity
@@ -47,25 +68,6 @@ encodeAsProperty _ recvChan = entityProperties $
 -- decodeFromPropertyOrFail :: EntityProperties -> Pay.SendPubKey
 -- decodeFromPropertyOrFail = either error id . decodeFromProperty
 
--- decodeFromProperty :: EntityProperties -> Either String Pay.SendPubKey
--- decodeFromProperty props =
---     case Map.lookup "key" map of
---         Just val ->
---             case val ^. vKeyValue of
---                 Just key ->
---                     maybe
---                         (Left "No PathList in OpenChanIndex EntityProperties")
---                         (Right . (^. peName))
---                         (listToMaybe $ key ^. kPath) >>=
---                             maybe
---                             (Left "Missing 'name' field in OpenChanIndex EnityProperties")
---                             decodeHex
---                 Nothing -> Left "Expected Key value in 'key'."
---         Nothing -> Left "no 'key' key in OpenChanIndex EntityProperties"
---   where
---     map = props ^. epAddtional
---     decodeHex = either (\e -> Left $ "Failed to decode SendPubKey from hex: " ++ e) Right .
---             Bin.decode . fst . B16.decode . cs
 -- } Property conversion
 
 

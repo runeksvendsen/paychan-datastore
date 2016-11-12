@@ -7,7 +7,7 @@ import Network.Google as Google
 
 import           DB.Tx
 import qualified Model.PayState    as State
-import qualified Model.ChanIndex     as Open
+import qualified Model.ChanIndex     as Index
 
 
 insertChan :: ( MonadGoogle '[AuthDatastore] m
@@ -20,7 +20,7 @@ insertChan projectId chan =
     where insertRequest = commitRequest
             & crMutations .~
                 [ mutation & mInsert ?~ State.mkEntity projectId chan
-                , mutation & mInsert ?~ Open.mkEntity  projectId chan ]
+                , mutation & mInsert ?~ Index.mkEntity  projectId chan ]
 
 removeChan :: ( MonadGoogle '[AuthDatastore] m
               ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
@@ -32,7 +32,7 @@ removeChan projectId key =
     where chanDeleteRequest = commitRequest
             & crMutations .~
                 [ mutation & mDelete ?~ State.mkKey projectId key
-                , mutation & mDelete ?~ Open.mkKey  projectId key ]
+                , mutation & mDelete ?~ Index.mkKey  projectId key ]
 
 runReqWithTx :: ( MonadGoogle '[AuthDatastore] m
               ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )

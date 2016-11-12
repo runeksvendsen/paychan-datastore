@@ -14,4 +14,5 @@ data DBException  =
 instance Except.Exception DBException
 
 type EntityVersion = Int64
-type TxId = BS.ByteString   -- ^ Database transaction handle.
+type TxId = BS.ByteString   -- ^ Transaction handle
+type Cursor = BS.ByteString -- ^ Query batch result handle

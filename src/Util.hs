@@ -7,17 +7,24 @@ module Util
 , fromMaybe
 , liftIO
 , cs
+, fmapL
+, (<=<), (>=>)
 )
 where
 
 import           Types
-import           Control.Monad.IO.Class     (liftIO)
+import           Control.Monad                  ((<=<), (>=>))
+import           Control.Monad.IO.Class         (liftIO)
 
 import qualified Control.Exception as Except
+import qualified Control.Monad.Catch as      Catch
 import           Control.Lens
-import           Data.Maybe                    (fromMaybe)
-import           Data.String.Conversions          (cs)
+import           Data.Maybe                     (fromMaybe)
+import           Data.String.Conversions        (cs)
+import           Data.EitherR                   (fmapL)
 
 internalError  = Except.throw . InternalError
--- internalErrorM = Catch.throwM . InternalError
+
+internalErrorM :: (Catch.MonadThrow m) => String -> m a
+internalErrorM = Catch.throwM . InternalError
 

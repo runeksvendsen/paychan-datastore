@@ -27,7 +27,10 @@ packages:
     - gogol
     - core
     - gogol-datastore
-
+- location:
+    git: https://github.com/runeksvendsen/promissory-note-types.git
+    commit: 949da711e24364ca4dc43889d21d2defb27c6f43
+  extra-dep: true
 
 extra-deps:
 - haskoin-core-0.4.0

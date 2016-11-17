@@ -16,6 +16,7 @@ where
 import DB.Types
 
 import qualified Data.Bitcoin.PaymentChannel.Test as Pay
+-- import qualified PromissoryNote as Note
 import qualified Data.Text                      as T
 import           Control.Monad.IO.Class     (MonadIO)
 

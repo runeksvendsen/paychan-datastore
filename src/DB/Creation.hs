@@ -5,7 +5,7 @@ module DB.Creation where
 import Util
 import Network.Google as Google
 
-import           DB.Tx
+import           DB.Tx.Safe
 import qualified Model.PayState    as State
 import qualified Model.ChanIndex     as Index
 
@@ -20,7 +20,7 @@ insertChan projectId chan =
     where insertRequest = commitRequest
             & crMutations .~
                 [ mutation & mInsert ?~ State.mkEntity projectId chan
-                , mutation & mInsert ?~ Index.mkEntity  projectId chan ]
+                , mutation & mInsert ?~ Index.mkEntity projectId chan ]
 
 removeChan :: ( MonadGoogle '[AuthDatastore] m
               ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )

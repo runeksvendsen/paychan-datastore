@@ -9,12 +9,14 @@ module Util
 , cs
 , fmapL
 , (<=<), (>=>)
+, (<>)
 )
 where
 
 import           Types
 import           Control.Monad                  ((<=<), (>=>))
 import           Control.Monad.IO.Class         (liftIO)
+import           Data.Monoid                    ((<>))
 
 import qualified Control.Exception as Except
 import qualified Control.Monad.Catch as      Catch

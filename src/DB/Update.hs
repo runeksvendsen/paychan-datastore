@@ -7,9 +7,9 @@ module DB.Update
 where
 
 import           Util
-import           DB.Tx
-import           DB.Lookup
-import           Model.PayState (parseLookupRes, mkEntity)
+import           DB.Tx.Safe
+import           DB.Tx.Lookup   (txLookup, parseLookupRes)
+import           Model.PayState (mkEntity)
 
 import           Network.Google as Google
 

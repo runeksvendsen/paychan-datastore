@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs, FlexibleContexts, DataKinds, PolyKinds #-}
-module DB.QueryIndex where
+module DB.Index.Keys where
 
 import           Util
 import qualified Model.ChanIndex        as Index

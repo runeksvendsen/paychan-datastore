@@ -3,25 +3,25 @@
 module DB.Tx.Lookup where
 
 import           Util
--- import           Model.PayState
+import           DB.Types
+import           Network.Google.Datastore
+
 import           Data.Maybe                (listToMaybe, fromMaybe)
 import           Network.Google as Google
 
 
--- |Perform lookup inside transaction
 txLookup :: ( MonadGoogle '[AuthDatastore] m
-            , HasScope    '[AuthDatastore] ProjectsLookup )
+            , HasScope    '[AuthDatastore] ProjectsLookup
+            , IsEntity a k)
            => ProjectId
-           -> SendPubKey
-           -> TxId
-           -> m LookupResponse
-txLookup projectId sendPK tx =
+           -> k
+           -> m (Maybe a)
+txLookup projectId tx key =
     let lookupReq = lookupRequest &
-                lrKeys .~ [mkKey projectId sendPK] &
-                lrReadOptions ?~ (readOptions & roTransaction ?~ tx)
+                lrKeys .~ [mkKey projectId sendPK]
     in Google.send (projectsLookup lookupReq projectId)
 
-parseLookupRes :: LookupResponse -> Maybe (RecvPayChan, EntityVersion)
+parseLookupRes :: IsEntity a k => LookupResponse -> Maybe (a, EntityVersion)
 parseLookupRes lookupRes =
     listToMaybe (lookupRes ^. lrFound) >>= \res ->  -- lrFound: Entities found as `ResultType.FULL` entities.
         case res ^. erEntity of

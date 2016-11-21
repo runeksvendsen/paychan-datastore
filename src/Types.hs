@@ -2,21 +2,23 @@
 module Types
 (
   module Types
-, module DB.Types
 -- , module Network.Google
-, module Network.Google.Datastore
+-- , module Network.Google.Datastore
 , Pay.SendPubKey
 , Pay.RecvPayChan
 , Pay.PayChanError
+, Pay.BitcoinAmount
 , Catch.MonadCatch
 , MonadIO
+, BS.ByteString
+, T.Text
+, Int64
 )
 where
 
-import DB.Types
-
 import qualified Data.Bitcoin.PaymentChannel.Test as Pay
--- import qualified PromissoryNote as Note
+import           Data.ByteString as BS
+import           Data.Int                         (Int64)
 import qualified Data.Text                      as T
 import           Control.Monad.IO.Class     (MonadIO)
 

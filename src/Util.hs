@@ -1,10 +1,8 @@
 module Util
 (
-  module Util
-, module Types
-, module Control.Lens
+  module Control.Lens
 , Except.throw
-, fromMaybe
+, fromMaybe, isJust, fromJust
 , liftIO
 , cs
 , fmapL
@@ -13,7 +11,7 @@ module Util
 )
 where
 
-import           Types
+-- import           Types
 import           Control.Monad                  ((<=<), (>=>))
 import           Control.Monad.IO.Class         (liftIO)
 import           Data.Monoid                    ((<>))
@@ -21,12 +19,8 @@ import           Data.Monoid                    ((<>))
 import qualified Control.Exception as Except
 import qualified Control.Monad.Catch as      Catch
 import           Control.Lens
-import           Data.Maybe                     (fromMaybe)
+import           Data.Maybe                     (fromMaybe, isJust, fromJust)
 import           Data.String.Conversions        (cs)
 import           Data.EitherR                   (fmapL)
 
-internalError  = Except.throw . InternalError
-
-internalErrorM :: (Catch.MonadThrow m) => String -> m a
-internalErrorM = Catch.throwM . InternalError
 

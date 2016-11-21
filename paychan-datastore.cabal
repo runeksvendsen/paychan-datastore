@@ -20,23 +20,22 @@ library
   ghc-options:         -W -Wredundant-constraints
   hs-source-dirs:      src
   default-language:    Haskell2010
-
+  default-extensions:  OverloadedStrings, MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, FunctionalDependencies
   exposed-modules:
-                       DB
-                       DB.Creation
+                       DB.Model.Entity
+                       DB.Model.EntityProps
+                       DB.Model.DatastoreValue
+                       DB.Model.Convert
+                       DB.Model.Identifier
+                       DB.Model.Request
                        DB.Types
-                       DB.Update
-                       DB.Tx.Lookup
-                       DB.Tx.Safe
-                       DB.Tx.Util
-                       DB.Index.Keys
-                       ---
-                       DB.Util.EntityMap
-                       ---
-                       Model.Class
+                       DB.Util.Error
+                       DB.Creation
                        Types
                        Util
-                       Test
+                       Test.ArbitraryJSON
+--                       Test.Main
+
   other-modules:
   build-depends:       base >= 4.7 && < 5
                      , bytestring
@@ -48,9 +47,9 @@ library
                      , gogol-datastore
                      , mtl
                      , lens
-                     , aeson
+                     , aeson, vector, scientific
                      , cereal
-                     , bitcoin-payment-channel
+                     , bitcoin-payment-channel, promissory-note-types
                      , QuickCheck
                      , string-conversions
                      , time
@@ -63,48 +62,79 @@ library
                      , stm, stm-containers, hashable
                      , base64-bytestring
 
-test-suite paychan-datastore
-  type:                 exitcode-stdio-1.0
-  main-is:              Test.hs
-  default-language:     Haskell2010
-  hs-source-dirs:       src
-  ghc-options:          -Wall -main-is Test
-  build-depends:       base >= 4.7 && < 5
-                       , paychan-datastore
-                       , bytestring
-                       , base16-bytestring
-                       , text
-                       , unordered-containers
-                       , gogol
-                       , gogol-core
-                       , gogol-datastore
-                       , mtl
-                       , lens
-                       , aeson
-                       , cereal
-                       , bitcoin-payment-channel
-                       , QuickCheck
-                       , string-conversions
-                       , time
-                       , http-conduit
-                       , exceptions
-                       , monad-control
-                       , transformers
-                       , async
-                       -- test-framework, test-framework-quickcheck2,
 
-  other-modules:      DB
-                      DB.Creation
-                      DB.Types
-                      DB.Update
-                      DB.Tx.Lookup
-                      DB.Tx.Safe
-                      DB.Tx.Util
-                      DB.Index.Keys
-                      ---
-                      DB.Util.EntityMap
-                      ---
-                      Model.Class
-                      Types
-                      Util
-                      Test
+                     , quickcheck-text
+
+test-suite json-convert
+  default-language: Haskell2010
+  default-extensions: OverloadedStrings, MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, FunctionalDependencies
+  type: exitcode-stdio-1.0
+  hs-source-dirs: src
+  main-is: Test/Main.hs
+  other-modules: Test.ArbitraryJSON, DB.Types, DB.Model.EntityProps, DB.Model.DatastoreValue, DB.Creation
+  ghc-options: -main-is Test.Main
+  build-depends:
+      base
+    , paychan-datastore
+    , gogol-datastore
+    , aeson
+    , HUnit >= 1.3
+    , lens
+    , QuickCheck >= 2.8.2
+    , test-framework, test-framework-quickcheck2
+    , quickcheck-text
+    , scientific
+    , text
+    , bytestring
+    , vector
+    , transformers
+    , unordered-containers
+    , bitcoin-payment-channel
+    , string-conversions
+
+
+--test-suite paychan-datastore
+--  type:                 exitcode-stdio-1.0
+--  main-is:              Test.hs
+--  default-language:     Haskell2010
+--  hs-source-dirs:       src
+--  ghc-options:          -Wall -main-is Test
+--  build-depends:       base >= 4.7 && < 5
+--                       , paychan-datastore
+--                       , bytestring
+--                       , base16-bytestring
+--                       , text
+--                       , unordered-containers
+--                       , gogol
+--                       , gogol-core
+--                       , gogol-datastore
+--                       , mtl
+--                       , lens
+--                       , aeson
+--                       , cereal
+--                       , bitcoin-payment-channel
+--                       , QuickCheck
+--                       , string-conversions
+--                       , time
+--                       , http-conduit
+--                       , exceptions
+--                       , monad-control
+--                       , transformers
+--                       , async
+--                       -- test-framework, test-framework-quickcheck2,
+--
+--  other-modules:      DB
+--                      DB.Creation
+--                      DB.Types
+--                      DB.Update
+--                      DB.Tx.Lookup
+--                      DB.Tx.Safe
+--                      DB.Tx.Util
+--                      DB.Index.Keys
+--                      ---
+--                      DB.Util.EntityMap
+--                      ---
+--                      DB.Model.Entity
+--                      Types
+--                      Util
+--                      Test

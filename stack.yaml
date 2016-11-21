@@ -9,7 +9,7 @@ packages:
 - '.'
 - location:
     git: https://github.com/runeksvendsen/haskoin.git
-    commit: ee401b07e28f888e3b00a351e2c56b72d07e24c0
+    commit: cbc4031f2337f1d7714f55fdd951b9942f8da130
   extra-dep: true
   subdirs:
     - haskoin-core
@@ -17,7 +17,7 @@ packages:
     - haskoin-wallet
 - location:
     git: https://github.com/runeksvendsen/bitcoin-payment-channel.git
-    commit: 2547df81667265413975e5926f14f716494b3066
+    commit: e4c87b97fb8401ae4a8805472ff47f3e3675340a
   extra-dep: true
 - location:
     git: https://github.com/brendanhay/gogol.git
@@ -29,7 +29,7 @@ packages:
     - gogol-datastore
 - location:
     git: https://github.com/runeksvendsen/promissory-note-types.git
-    commit: 949da711e24364ca4dc43889d21d2defb27c6f43
+    commit: 984b767cc812d8b9627d6f6b99e6967b24019b0f
   extra-dep: true
 
 extra-deps:
@@ -37,6 +37,7 @@ extra-deps:
 - murmur3-1.0.3
 - pbkdf-1.1.1.1
 - secp256k1-0.4.6
+- refined-0.1.2.1
 
 
 # Override default flag values for local packages and extra-deps

@@ -9,7 +9,6 @@ where
 import           Util
 import           DB.Tx.Safe
 import           DB.Tx.Lookup   (txLookup, parseLookupRes)
-import           Model.PayState (mkEntity)
 
 import           Network.Google as Google
 

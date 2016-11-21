@@ -32,7 +32,7 @@ fromKey k = case k ^. DS.kPath of
     getName e = maybe (Left "Missing name") Right $ e ^. DS.peName
     typeStr = cs $ show (typeOf (undefined :: a))
 
-encodeNative :: forall a. ConvertNative a => a -> DS.Value
+encodeNative :: ConvertNative a => a -> DS.Value
 encodeNative = encode . toKey
 
 decodeNative :: forall a. ConvertNative a => DS.Value -> Maybe a

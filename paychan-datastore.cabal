@@ -24,7 +24,7 @@ library
   exposed-modules:
                        DB.Model.Entity
                        DB.Model.EntityProps
-                       DB.Model.DatastoreValue
+                       DB.Model.NativeValue
                        DB.Model.Convert
                        DB.Model.Identifier
                        DB.Model.Request
@@ -71,7 +71,7 @@ test-suite json-convert
   type: exitcode-stdio-1.0
   hs-source-dirs: src
   main-is: Test/Main.hs
-  other-modules: Test.ArbitraryJSON, DB.Types, DB.Model.EntityProps, DB.Model.DatastoreValue, DB.Creation
+  other-modules: Test.ArbitraryJSON, DB.Types, DB.Model.EntityProps, DB.Model.NativeValue, DB.Creation
   ghc-options: -main-is Test.Main
   build-depends:
       base

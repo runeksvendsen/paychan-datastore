@@ -13,7 +13,7 @@ module DB.Model.EntityProps
 
 where
 
-import DB.Model.DatastoreValue
+import DB.Model.NativeValue
 
 import Network.Google.Datastore
 import Control.Lens
@@ -68,8 +68,8 @@ convertWithIndex indxExcl = Map.mapWithKey $ \k v -> convertValue v (k `elem` in
         convertValue val exclude = jsonToDS indxExcl val & vExcludeFromIndexes ?~ exclude
 
 
--- | Construct a 'JSON.Value' from any 'DatastoreValue'
-class DatastoreValue a => MkJson a where
+-- | Construct a 'JSON.Value' from any 'NativeValue'
+class NativeValue a => MkJson a where
     mkJson :: a -> JSON.Value
 
 instance MkJson Bool where

@@ -9,6 +9,7 @@ import Data.Text (Text)
 import qualified Data.Scientific        as Sci
 
 
+-- |Store any type inside a 'DS.Value' by encoding it as a string inside a 'DS.Key'
 class Typeable a => ConvertNative a where
     toStr   :: a -> Text
     fromStr :: Text -> Maybe a

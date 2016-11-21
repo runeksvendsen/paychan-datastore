@@ -25,6 +25,7 @@ library
                        DB.Model.Entity
                        DB.Model.EntityProps
                        DB.Model.NativeValue
+                       DB.Model.NativeConvert
                        DB.Model.Convert
                        DB.Model.Identifier
                        DB.Model.Request
@@ -91,6 +92,8 @@ test-suite json-convert
     , unordered-containers
     , bitcoin-payment-channel
     , string-conversions
+    , errors
+    , exceptions
 
 
 --test-suite paychan-datastore

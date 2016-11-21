@@ -14,6 +14,7 @@ module DB.Model.EntityProps
 where
 
 import DB.Model.NativeValue
+import DB.Model.NativeConvert
 
 import Network.Google.Datastore
 import Control.Lens
@@ -39,14 +40,13 @@ instance ToJSON' Sci.Scientific where
         case Sci.toBoundedInteger sci of
             Just i  -> encode (i :: Int64)
             Nothing -> case Sci.toBoundedRealFloat sci of
-                   Right d -> if Sci.fromFloatDigits d /= sci then
-                        error "Double doesn't fit!" else encode (d :: Double)
+                   Right d -> if Sci.fromFloatDigits d == sci then
+                        encode (d :: Double) else encodeNative sci
                    Left inf  -> error $ "Number doesn't fit because it's " ++ show inf
 
 instance ToJSON' (Vec.Vector DS.Value) where
     wrapJson vec = encode $
        arrayValue & avValues .~ Vec.toList vec
-
 
 -- | Convert a JSON.Value, excluding from indexing 'JSON.Object' keys in '[NoIndexKey]'
 jsonToDS :: [NoIndexKey] -> JSON.Value -> DS.Value
@@ -68,8 +68,8 @@ convertWithIndex indxExcl = Map.mapWithKey $ \k v -> convertValue v (k `elem` in
         convertValue val exclude = jsonToDS indxExcl val & vExcludeFromIndexes ?~ exclude
 
 
--- | Construct a 'JSON.Value' from any 'NativeValue'
-class NativeValue a => MkJson a where
+-- | Construct a 'JSON.Value' from any value
+class MkJson a where
     mkJson :: a -> JSON.Value
 
 instance MkJson Bool where
@@ -82,6 +82,9 @@ instance MkJson Int64 where
     mkJson = JSON.toJSON
 
 instance MkJson Double where
+    mkJson = JSON.toJSON
+
+instance MkJson Sci.Scientific where
     mkJson = JSON.toJSON
 
 instance MkJson DS.ValueNullValue where
@@ -106,6 +109,7 @@ jsonFromDS val =
             <|> mkJson <$> (decodeMaybe val :: Maybe DS.Entity)
             <|> mkJson <$> (decodeMaybe val :: Maybe DS.ArrayValue)
             <|> mkJson <$> (decodeMaybe val :: Maybe DS.ValueNullValue)
+            <|> mkJson <$> (decodeNative val :: Maybe Sci.Scientific)
     in
         fromMaybe JSON.Null parseRes    -- (fail "DS.Value -> JSON parse fail")
 

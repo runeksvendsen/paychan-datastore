@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric, DeriveAnyClass, GADTs, FlexibleContexts, DataKinds, RecordWildCards #-}
+{-# LANGUAGE DeriveAnyClass, GADTs, FlexibleContexts, DataKinds, ScopedTypeVariables#-}
 module DB.Creation where
 
 import DB.Types
@@ -8,22 +8,12 @@ import DB.Util.Error
 import DB.Model.Convert
 
 
---
--- dbInsert :: HasProperties a k => a -> m ()
--- dbInsert = error "STUB"
---
--- dbUpdate :: HasProperties a k => a -> m ()
--- dbUpdate = error "STUB"
---
--- dbRemove :: IsKey k  => k -> m ()
--- dbRemove = error "STUB"
-
 
 insertChan :: ( MonadGoogle '[AuthDatastore] m
-              ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
+              , HasScope '[AuthDatastore] ProjectsBeginTransaction )
            => ProjectId
            -> RecvPayChan
-           -> m CommitResponse
+           -> m (Tagged RecvPayChan CommitResponse)
 insertChan projectId chan =
     runReqWithTx projectId (mkInsert chan)
 --     where insertRequest = commitRequest
@@ -35,16 +25,17 @@ removeChan :: ( MonadGoogle '[AuthDatastore] m
               ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
            => ProjectId
            -> SendPubKey
-           -> m CommitResponse
+           -> m (Tagged RecvPayChan CommitResponse)
 removeChan projectId key =
-    runReqWithTx projectId (mkDelete $ mkChanKey key)
+    runReqWithTx projectId (mkDelete key)
 
-runReqWithTx :: ( MonadGoogle '[AuthDatastore] m
-              ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
-             => ProjectId -> CommitRequest -> m CommitResponse
+runReqWithTx :: forall a m.
+             ( MonadGoogle '[AuthDatastore] m
+             , HasScope '[AuthDatastore] ProjectsBeginTransaction )
+             => ProjectId -> Tagged a CommitRequest -> m (Tagged a CommitResponse)
 runReqWithTx pid commitReq =
-    withTx pid ( const $ return ((), Just commitReq) ) >>=
+    withTx pid ( const $ return ((), Just (unTagged commitReq)) ) >>=
         \(_,responseM) -> maybe
            (internalErrorM "runReqWithTx: 'withTx' did not return CommitResponse")
            return
-           responseM
+           (Tagged <$> responseM)

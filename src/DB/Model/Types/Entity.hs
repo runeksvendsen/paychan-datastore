@@ -39,48 +39,28 @@ data Entity a = Entity
     , entityProps'  :: EntityProps
     }
 
-class Identifier a => HasAncestors a where
-    ancestors :: a -> [DS.PathElement]
-    ancestors _ = []
+class (IsEntity a, HasDescendant k) => IsDescendant a k | a -> k where
+    getKey           :: a -> k
+    ancestorIdent    :: a -> Ident k
+    entityIdent      :: a -> [DS.PathElement]
+
+instance IsDescendant RecvPayChan SendPubKey where
+    entityIdent = descPathElem . getKey
+    ancestorIdent = getIdent . getKey
+    getKey = Pay.getSenderPubKey
 
 
--- instance Identifier a => HasAncestors (EntityKey a) where
---     ancestors (EntityKey _ anc) = anc
--- --     key (EntityKey i _) = getIdent i
---
--- instance Identifier a => HasAncestors (Entity a) where
---     ancestors (Entity k _) = ancestors k
+class Identifier k => HasDescendant k where
+    descPathElem :: k -> [DS.PathElement]
 
--- instance Typeable a => Identifier (EntityKey a)
---     where objectId (EntityKey i _) = objectId i
---
--- instance Typeable a => Identifier (Entity a)
---     where objectId (Entity k _) = objectId k
-
--- class IsKey k where
---     keyIdent     :: k -> Ident k
---     keyAncestors :: k -> [DS.PathElement]
---
--- instance IsKey SendPubKey where
---     keyIdent = getIdent
---     keyAncestors
-
-class Identifier k => HasKey a k | a -> k where
-    entityIdent     :: a -> Ident k
-    entityAncestors :: a -> [DS.PathElement]
+instance HasDescendant SendPubKey where
+    descPathElem _ = [ toPathElem (Ident $ Left 1 :: Ident RecvPayChan) ]
 
 
 class (Identifier a, JSON.FromJSON a) => IsEntity a where
     properties  :: a -> JSON.Object
     excludeKeys :: a -> [NoIndexKey]
     excludeKeys _ = []
-
-instance HasAncestors SendPubKey where
---     ancestors a = [toPathElem $ getIdent a]
---     key _ = Ident $ Left 1 :: Ident RecvPayChan
-
-instance HasAncestors RecvPayChan where
-    ancestors a = [toPathElem $ getIdent $ Pay.getSenderPubKey a]
 
 instance IsEntity RecvPayChan
     where properties = (\(JSON.Object o) -> o) . JSON.toJSON
@@ -91,13 +71,13 @@ instance IsEntity PromissoryNote
           excludeKeys _ = ["server_sig"]
 
 
-mkChanKey :: forall a. Identifier a => a -> EntityKey RecvPayChan
-mkChanKey sendPK =
-    EntityKey chanKey [ toPathElem $ getIdent sendPK ]
-        where chanKey = Ident $ Left 1 :: Ident RecvPayChan
+-- mkChanKey :: forall a. Identifier a => a -> EntityKey RecvPayChan
+-- mkChanKey sendPK =
+--     EntityKey chanKey [ toPathElem $ getIdent sendPK ]
+--         where chanKey = Ident $ Left 1 :: Ident RecvPayChan
 
-parseEntity' :: forall a. IsEntity a => Entity a -> Either String a
-parseEntity' (Entity _ props) =
+entityFromJson :: forall a. IsEntity a => Entity a -> Either String a
+entityFromJson (Entity _ props) =
     case JSON.fromJSON . JSON.Object $ jsonFromDS <$> props of
         JSON.Success a -> Right a
         JSON.Error e        -> Left e

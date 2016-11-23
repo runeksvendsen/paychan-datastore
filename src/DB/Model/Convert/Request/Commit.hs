@@ -3,6 +3,7 @@ module DB.Model.Convert.Request.Commit where
 
 import DB.Model.Types.Entity
 import DB.Model.Convert.Entity
+import Types
 import Util
 
 import qualified Network.Google.Datastore as DS
@@ -10,17 +11,21 @@ import Network.Google.Datastore hiding (Entity, key)
 
 
 
-mkInsert :: (HasAncestors a, IsEntity a) => a -> DS.CommitRequest
-mkInsert a = mutationReq [ mutation & mInsert ?~ encodeEntity a ]
+mkInsert :: forall a k. (IsDescendant a k) => a -> Tagged a DS.CommitRequest
+mkInsert a = Tagged $ mutationReq
+    [ mutation & mInsert ?~ unTagged (encodeEntity a :: Tagged a DS.Entity) ]
 
-mkUpsert :: (HasAncestors a, IsEntity a) => a -> DS.CommitRequest
-mkUpsert a = mutationReq [ mutation & mUpsert ?~ encodeEntity a ]
+mkUpsert :: forall a k. (IsDescendant a k) => a -> Tagged a DS.CommitRequest
+mkUpsert a = Tagged $ mutationReq
+    [ mutation & mUpsert ?~ unTagged (encodeEntity a :: Tagged a DS.Entity) ]
 
-mkUpdate :: (HasAncestors a, IsEntity a) => a -> DS.CommitRequest
-mkUpdate a = mutationReq [ mutation & mUpdate ?~ encodeEntity a ]
+mkUpdate :: forall a k. (IsDescendant a k) => a -> Tagged a DS.CommitRequest
+mkUpdate a = Tagged $ mutationReq
+    [ mutation & mUpdate ?~ unTagged (encodeEntity a :: Tagged a DS.Entity) ]
 
-mkDelete :: HasAncestors a => a -> DS.CommitRequest
-mkDelete a = mutationReq [ mutation & mDelete ?~ encodeKey a ]
+mkDelete :: forall a k. IsDescendant a k => k -> Tagged a DS.CommitRequest
+mkDelete a = Tagged $ mutationReq
+    [ mutation & mDelete ?~ unTagged (encodeKey a :: Tagged a DS.Key)]
 
 
 

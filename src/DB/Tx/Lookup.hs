@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveAnyClass, GADTs, FlexibleContexts, DataKinds #-}
+{-# LANGUAGE ScopedTypeVariables, DeriveAnyClass, GADTs, FlexibleContexts, DataKinds #-}
 module DB.Tx.Lookup
 (
   module DB.Tx.Lookup
@@ -13,16 +13,19 @@ import           Util
 import           Network.Google as Google
 
 
-txLookup :: ( MonadGoogle '[AuthDatastore] m
+txLookup :: forall a k m.
+            ( MonadGoogle '[AuthDatastore] m
             , HasScope    '[AuthDatastore] ProjectsLookup
-            , HasKey a k)
+            , IsDescendant a k)
            => ProjectId
            -> TxId
            -> k
-           -> m ( Either String [(Entity a, EntityVersion)] )
+           -> m ( Either String [(a, EntityVersion)] )
 txLookup projectId tx key =
-    parseLookupRes <$> Google.send (projectsLookup reqWithTx projectId)
-        where reqWithTx = mkLookup key &
+    parseLookupRes <$> reqRes
+        where
+            reqRes = Tagged <$> Google.send (projectsLookup reqWithTx projectId) :: m (Tagged a LookupResponse)
+            reqWithTx = unTagged (mkLookup key :: Tagged a LookupRequest) &
                 lrReadOptions ?~ (readOptions & roTransaction ?~ tx)
 
 

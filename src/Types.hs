@@ -13,9 +13,11 @@ module Types
 , BS.ByteString
 , T.Text
 , Int64
+, Tagged(..)
 )
 where
 
+import           Data.Tagged (Tagged(..))
 import qualified Data.Bitcoin.PaymentChannel.Test as Pay
 import           Data.ByteString as BS
 import           Data.Int                         (Int64)

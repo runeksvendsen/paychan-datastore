@@ -15,13 +15,13 @@ import           Network.Google as Google
 
 txLookup :: ( MonadGoogle '[AuthDatastore] m
             , HasScope    '[AuthDatastore] ProjectsLookup
-            , HasKey k)
+            , HasKey a k)
            => ProjectId
            -> TxId
            -> k
-           -> m LookupResponse
+           -> m ( Either String [(Entity a, EntityVersion)] )
 txLookup projectId tx key =
-    Google.send (projectsLookup reqWithTx projectId)
+    parseLookupRes <$> Google.send (projectsLookup reqWithTx projectId)
         where reqWithTx = mkLookup key &
                 lrReadOptions ?~ (readOptions & roTransaction ?~ tx)
 

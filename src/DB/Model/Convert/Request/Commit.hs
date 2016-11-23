@@ -10,16 +10,16 @@ import Network.Google.Datastore hiding (Entity, key)
 
 
 
-mkInsert :: (HasKey a, IsEntity a) => a -> DS.CommitRequest
+mkInsert :: (HasAncestors a, IsEntity a) => a -> DS.CommitRequest
 mkInsert a = mutationReq [ mutation & mInsert ?~ encodeEntity a ]
 
-mkUpsert :: (HasKey a, IsEntity a) => a -> DS.CommitRequest
+mkUpsert :: (HasAncestors a, IsEntity a) => a -> DS.CommitRequest
 mkUpsert a = mutationReq [ mutation & mUpsert ?~ encodeEntity a ]
 
-mkUpdate :: (HasKey a, IsEntity a) => a -> DS.CommitRequest
+mkUpdate :: (HasAncestors a, IsEntity a) => a -> DS.CommitRequest
 mkUpdate a = mutationReq [ mutation & mUpdate ?~ encodeEntity a ]
 
-mkDelete :: HasKey a => a -> DS.CommitRequest
+mkDelete :: HasAncestors a => a -> DS.CommitRequest
 mkDelete a = mutationReq [ mutation & mDelete ?~ encodeKey a ]
 
 

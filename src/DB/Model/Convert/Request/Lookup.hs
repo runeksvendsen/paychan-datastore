@@ -10,7 +10,8 @@ import Util
 import qualified Network.Google.Datastore as DS
 
 
-mkLookup :: HasKey k => k -> DS.LookupRequest
+-- mkLookup :: HasAncestors k => k -> DS.LookupRequest
+mkLookup :: HasKey a k => k -> DS.LookupRequest
 mkLookup k = lookupRequest & lrKeys .~ [ encodeKey k ]
 
 parseLookupRes :: forall a. Identifier a => DS.LookupResponse -> Either String [(Entity a, EntityVersion)]

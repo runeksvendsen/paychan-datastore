@@ -25,6 +25,8 @@ import           Data.Typeable
 import qualified Network.Google.Datastore as DS
 
 
+type NativeEntity a = Tagged a DS.Entity
+
 -- | Isomorphic to 'DS.Key' (contains: "kind" + id/name + optional ancesor path)
 data EntityKey a = EntityKey
     { ident         :: Ident a
@@ -37,24 +39,35 @@ data Entity a = Entity
     , entityProps'  :: EntityProps
     }
 
-class Identifier a => HasKey a where
+class Identifier a => HasAncestors a where
     ancestors :: a -> [DS.PathElement]
---     key       :: a -> Ident a
     ancestors _ = []
 
 
-instance Identifier a => HasKey (EntityKey a) where
-    ancestors (EntityKey _ anc) = anc
---     key (EntityKey i _) = getIdent i
+-- instance Identifier a => HasAncestors (EntityKey a) where
+--     ancestors (EntityKey _ anc) = anc
+-- --     key (EntityKey i _) = getIdent i
+--
+-- instance Identifier a => HasAncestors (Entity a) where
+--     ancestors (Entity k _) = ancestors k
 
-instance Identifier a => HasKey (Entity a) where
-    ancestors (Entity k _) = ancestors k
+-- instance Typeable a => Identifier (EntityKey a)
+--     where objectId (EntityKey i _) = objectId i
+--
+-- instance Typeable a => Identifier (Entity a)
+--     where objectId (Entity k _) = objectId k
 
-instance Typeable a => Identifier (EntityKey a)
-    where objectId (EntityKey i _) = objectId i
+-- class IsKey k where
+--     keyIdent     :: k -> Ident k
+--     keyAncestors :: k -> [DS.PathElement]
+--
+-- instance IsKey SendPubKey where
+--     keyIdent = getIdent
+--     keyAncestors
 
-instance Typeable a => Identifier (Entity a)
-    where objectId (Entity k _) = objectId k
+class Identifier k => HasKey a k | a -> k where
+    entityIdent     :: a -> Ident k
+    entityAncestors :: a -> [DS.PathElement]
 
 
 class (Identifier a, JSON.FromJSON a) => IsEntity a where
@@ -62,11 +75,11 @@ class (Identifier a, JSON.FromJSON a) => IsEntity a where
     excludeKeys :: a -> [NoIndexKey]
     excludeKeys _ = []
 
--- instance HasKey SendPubKey where
+instance HasAncestors SendPubKey where
 --     ancestors a = [toPathElem $ getIdent a]
 --     key _ = Ident $ Left 1 :: Ident RecvPayChan
 
-instance HasKey RecvPayChan where
+instance HasAncestors RecvPayChan where
     ancestors a = [toPathElem $ getIdent $ Pay.getSenderPubKey a]
 
 instance IsEntity RecvPayChan

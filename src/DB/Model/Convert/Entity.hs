@@ -15,7 +15,7 @@ import qualified Network.Google.Datastore   as DS
 import Debug.Trace
 
 
-encodeKey :: HasKey a => a -> DS.Key
+encodeKey :: HasAncestors a => a -> DS.Key
 encodeKey a = DS.key &
     DS.kPath .~ ( show keyPath `trace` keyPath )
         where keyPath = ancestors a ++ [ toPathElem (getIdent a) ]
@@ -26,7 +26,7 @@ parseKey a = case a ^. DS.kPath of
     []          -> Left "No PathElements in Key"
 
 
-encodeEntity :: (HasKey a, IsEntity a) => a -> DS.Entity
+encodeEntity :: (HasAncestors a, IsEntity a) => a -> DS.Entity
 encodeEntity a = DS.entity
     & DS.eKey ?~ encodeKey a
     & DS.eProperties ?~ DS.entityProperties props

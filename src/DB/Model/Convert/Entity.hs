@@ -13,12 +13,12 @@ import Util
 import qualified Data.HashMap.Strict        as Map
 import qualified Network.Google.Datastore   as DS
 
-import Debug.Trace
+-- import Debug.Trace
 
 
 encodeKey :: IsDescendant a k => k -> Tagged a DS.Key
 encodeKey k = Tagged $ DS.key &
-    DS.kPath .~ ( ("Key: " ++ show keyPath) `trace` keyPath )
+    DS.kPath .~ keyPath
         where keyPath = toPathElem (getIdent k) : descPathElem k
 
 parseKey :: forall a k. IsDescendant a k => Tagged a DS.Key -> Either String (Ident k, [DS.PathElement])

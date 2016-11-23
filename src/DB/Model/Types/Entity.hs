@@ -76,9 +76,9 @@ instance IsEntity PromissoryNote
 --     EntityKey chanKey [ toPathElem $ getIdent sendPK ]
 --         where chanKey = Ident $ Left 1 :: Ident RecvPayChan
 
-entityFromJson :: forall a. IsEntity a => Entity a -> Either String a
-entityFromJson (Entity _ props) =
-    case JSON.fromJSON . JSON.Object $ jsonFromDS <$> props of
+entityFromJson :: forall a. JSON.FromJSON a => Tagged a EntityProps -> Either String a
+entityFromJson propsT =
+    case JSON.fromJSON . JSON.Object $ jsonFromDS <$> unTagged propsT of
         JSON.Success a -> Right a
         JSON.Error e        -> Left e
 

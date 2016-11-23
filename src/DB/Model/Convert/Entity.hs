@@ -21,7 +21,7 @@ encodeKey k = Tagged $ DS.key &
     DS.kPath .~ ( ("Key: " ++ show keyPath) `trace` keyPath )
         where keyPath = toPathElem (getIdent k) : descPathElem k
 
-parseKey :: forall a k. IsDescendant a k => Tagged a DS.Key -> Either String (Ident a, [DS.PathElement])
+parseKey :: forall a k. IsDescendant a k => Tagged a DS.Key -> Either String (Ident k, [DS.PathElement])
 parseKey a = case unTagged a ^. DS.kPath of
     (idn : anc) -> (,) <$> parsePathElem idn <*> return anc
     []          -> Left "No PathElements in Key"
@@ -34,10 +34,18 @@ encodeEntity a = Tagged $ DS.entity
         where props = jsonToDS (excludeKeys a) <$> properties a
 
 parseEntity :: forall a k. (IsDescendant a k) => Tagged a DS.Entity -> Either String a
-parseEntity e =
-    getTagKey >>= parseKey >>= \(idnt, ancestors) -> entityFromJson $
-        Entity (EntityKey idnt ancestors) props
+parseEntity eT =
+    getTagKey >>= parseKey >>= \(idnt, peL) -> entityFromJson (Tagged props) >>= \a ->
+            if parsedKey a == Right (idnt, peL) then
+                Right a
+            else
+                Left $ "Native Entity / Parsed Entity key mismatch." ++ show (idnt, peL)
   where
     getTagKey = Tagged <$> entKeyE :: Either String (Tagged a DS.Key)
-    entKeyE = maybe (Left "No key in Entity") Right (unTagged e ^. DS.eKey)
-    props = fromMaybe Map.empty $ ( ^. DS.epAddtional ) <$> unTagged e ^. DS.eProperties
+    entKeyE = maybe (Left "No key in Entity") Right (unTagged eT ^. DS.eKey)
+    props = fromMaybe Map.empty $ ( ^. DS.epAddtional ) <$> unTagged eT ^. DS.eProperties
+    parsedKey e = parseKey (encKey e) :: Either String ( Ident k, [DS.PathElement] )
+    encKey a = encodeKey (getKey a) :: Tagged a DS.Key
+
+
+

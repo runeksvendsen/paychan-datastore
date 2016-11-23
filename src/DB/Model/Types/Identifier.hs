@@ -19,7 +19,7 @@ import           Data.Typeable
 
 data Ident a = Ident
     { iId       :: Either Int64 Text
-    } deriving Typeable
+    } deriving (Eq, Typeable)
 
 -- | Identifier for Datastore objects.
 -- Two objects of type 'a' are considered equal if they return the same 'objectId'

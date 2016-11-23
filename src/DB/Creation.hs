@@ -3,26 +3,48 @@
 module DB.Creation where
 
 import DB.Types
-import Util
-import DB.Model.Entity
+import DB.Tx.Safe
+import DB.Util.Error
+import DB.Model.Convert
 
 
 --
--- dbInsert :: IsEntity a k => a -> m ()
+-- dbInsert :: HasProperties a k => a -> m ()
 -- dbInsert = error "STUB"
 --
--- dbUpdate :: IsEntity a k => a -> m ()
+-- dbUpdate :: HasProperties a k => a -> m ()
 -- dbUpdate = error "STUB"
 --
 -- dbRemove :: IsKey k  => k -> m ()
 -- dbRemove = error "STUB"
 
---
--- runReqWithTx :: ( MonadGoogle '[AuthDatastore] m
---               ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
---              => ProjectId -> CommitRequest -> m CommitResponse
--- runReqWithTx pid commitReq =
---     withTx pid ( const $ return ((), Just commitReq) ) >>=
---         \(_,maybeResp) -> return $ fromMaybe
---            (throw $ InternalError "runReqWithTx: 'withTx' did not return CommitResponse")
---            maybeResp
+
+insertChan :: ( MonadGoogle '[AuthDatastore] m
+              ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
+           => ProjectId
+           -> RecvPayChan
+           -> m CommitResponse
+insertChan projectId chan =
+    runReqWithTx projectId (mkInsert chan)
+--     where insertRequest = commitRequest
+--             & crMutations .~
+--                 [ mutation & mInsert ?~ State.mkEntity projectId chan
+--                 , mutation & mInsert ?~ Index.mkEntity  projectId chan ]
+
+removeChan :: ( MonadGoogle '[AuthDatastore] m
+              ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
+           => ProjectId
+           -> SendPubKey
+           -> m CommitResponse
+removeChan projectId key =
+    runReqWithTx projectId (mkDelete $ mkChanKey key)
+
+runReqWithTx :: ( MonadGoogle '[AuthDatastore] m
+              ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
+             => ProjectId -> CommitRequest -> m CommitResponse
+runReqWithTx pid commitReq =
+    withTx pid ( const $ return ((), Just commitReq) ) >>=
+        \(_,responseM) -> maybe
+           (internalErrorM "runReqWithTx: 'withTx' did not return CommitResponse")
+           return
+           responseM

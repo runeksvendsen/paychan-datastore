@@ -7,11 +7,12 @@ module DB.Update
 where
 
 import           Util
+import           DB.Types
 import           DB.Tx.Safe
 import           DB.Tx.Lookup   (txLookup, parseLookupRes)
+import           DB.Model.Convert
 
 import           Network.Google as Google
-
 import qualified Control.Exception        as Except
 import           Control.Exception          (throw)
 import           Data.Maybe                 (fromMaybe)
@@ -30,16 +31,21 @@ withDBState :: ( MonadCatch m
             -> m (Either PayChanError RecvPayChan)
 withDBState pid sendPK f = do
     (eitherRes,_) <- withTx pid $ \tx -> do
-        (chan,_) <- (errorOnNothing . parseLookupRes) <$> txLookup pid sendPK tx
+        resE <- parseLookupRes <$> txLookup pid tx (mkChanKey sendPK)
+        (ent,_) <- case resE of
+            Right resL -> return $ head resL
+            Left e     -> error e
+
+        chan <- case parseEntity' ent of
+            Right a -> return a
+            Left e  -> error e
+
         eitherRes <- liftIO (f chan)
         case eitherRes of
             Left _        -> return (eitherRes, Nothing)
-            Right newChan -> return (eitherRes, Just $ mkCommitReq newChan)
+            Right newChan -> return (eitherRes, Just $ mkUpdate newChan)
     return eitherRes
-  where
-    errorOnNothing = fromMaybe (Except.throw NoSuchChannel)
-    mkCommitReq chan = commitRequest
-            & crMutations .~ [mutation & mUpdate ?~ mkEntity pid chan]
+
 
 -- |Check entity version.
 checkCommResponse :: EntityVersion -> CommitResponse -> UpdateResult

@@ -4,6 +4,7 @@ module Test where
 
 import           Util
 import qualified DB
+import           DB.Types
 import qualified Data.Bitcoin.PaymentChannel.Test as Pay
 
 import qualified Control.Monad as M
@@ -24,7 +25,7 @@ payCount :: Word
 payCount = 100
 
 threadCount :: Word
-threadCount = 1000
+threadCount = 1
 
 main :: IO ()
 main = do
@@ -51,7 +52,7 @@ testDB pid Pay.ChannelPairResult{..} = do
     let sampleRecvChan = Pay.recvChan resInitPair
         sampleKey = Pay.getSenderPubKey sampleRecvChan
         paymentList = reverse $ init resPayList
-    DB.insertChan pid sampleRecvChan
+    _ <- DB.insertChan pid sampleRecvChan
     -- Safe lookup + update/rollback
 --     liftIO $ putStr "   Payments received:"
     res <- M.forM paymentList (doPayment pid sampleKey)
@@ -66,6 +67,7 @@ defaultAppDatastoreEnv = do
         (envScopes .~ datastoreScope) .
         (envManager .~ manager)
 
+genTestData :: Word -> IO Pay.ChannelPairResult
 genTestData numPayments = do
     amountList <- map fromIntegral <$> generate
         (vectorOf (fromIntegral numPayments+1) (choose (0, 100) :: Gen Integer))

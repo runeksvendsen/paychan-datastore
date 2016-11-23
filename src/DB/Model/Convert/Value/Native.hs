@@ -1,7 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-module DB.Model.NativeValue
+module DB.Model.Convert.Value.Native
 (
-  module DB.Model.NativeValue
+  module DB.Model.Convert.Value.Native
 , Text
 , ByteString
 , Int64
@@ -31,7 +31,9 @@ instance NativeValue Double          where valueLens = vDoubleValue
 instance NativeValue DS.Key          where valueLens = vKeyValue
 instance NativeValue DS.Entity       where valueLens = vEntityValue
 instance NativeValue DS.ArrayValue   where valueLens = vArrayValue
+-- instance NativeValue [a]             where valueLens = fmap avValues vArrayValue
 instance NativeValue DS.ValueNullValue where valueLens = vNullValue
+
 
 encode :: NativeValue a => a -> DS.Value
 encode a = set valueLens (Just a) value
@@ -41,5 +43,5 @@ decodeMaybe = view valueLens
 
 decode :: forall a. NativeValue a => DS.Value -> a
 decode v = fromMaybe
-    ( error $ show (typeOf (undefined :: a)) ++ " not present in DS.Value: " ++ show v )
+    ( error $ (show . show $ typeOf (undefined :: a)) ++ " not present in DS.Value: " ++ show v )
     (decodeMaybe v)

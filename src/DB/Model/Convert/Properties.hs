@@ -1,7 +1,7 @@
 {-# OPTIONS -Wall #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables, MultiParamTypeClasses, FlexibleInstances #-}
-module DB.Model.EntityProps
+module DB.Model.Convert.Properties
 (
   -- * Util
   jsonToDS
@@ -13,15 +13,13 @@ module DB.Model.EntityProps
 
 where
 
-import DB.Model.NativeValue
-import DB.Model.NativeConvert
+import DB.Model.Convert.Value
 
 import Network.Google.Datastore
 import Control.Lens
 
 import qualified Network.Google.Datastore.Types as DS
 import qualified Data.Aeson             as JSON
-import qualified Data.Vector            as Vec
 import qualified Data.Scientific        as Sci
 import qualified Data.HashMap.Strict    as Map
 import           Data.Maybe               (fromMaybe)
@@ -31,33 +29,16 @@ import           Control.Applicative     ((<|>))
 type EntityProps = Map.HashMap Text DS.Value
 type NoIndexKey = Text
 
--- |
-class ToJSON' a where
-    wrapJson :: a -> DS.Value
-
-instance ToJSON' Sci.Scientific where
-    wrapJson sci =
-        case Sci.toBoundedInteger sci of
-            Just i  -> encode (i :: Int64)
-            Nothing -> case Sci.toBoundedRealFloat sci of
-                   Right d -> if Sci.fromFloatDigits d == sci then
-                        encode (d :: Double) else encodeNative sci
-                   Left inf  -> error $ "Number doesn't fit because it's " ++ show inf
-
-instance ToJSON' (Vec.Vector DS.Value) where
-    wrapJson vec = encode $
-       arrayValue & avValues .~ Vec.toList vec
-
 -- | Convert a JSON.Value, excluding from indexing 'JSON.Object' keys in '[NoIndexKey]'
 jsonToDS :: [NoIndexKey] -> JSON.Value -> DS.Value
-jsonToDS _ JSON.Null         = encode NullValue
-jsonToDS _ (JSON.Bool b)     = encode b
-jsonToDS _ (JSON.String txt) = encode txt
-jsonToDS _ (JSON.Number sci) = wrapJson sci
+jsonToDS _ JSON.Null         = toValue NullValue
+jsonToDS _ (JSON.Bool b)     = toValue b
+jsonToDS _ (JSON.String txt) = toValue txt
+jsonToDS _ (JSON.Number sci) = toValue sci
 
-jsonToDS exL (JSON.Array vec) = wrapJson $ fmap (jsonToDS exL) vec
+jsonToDS exL (JSON.Array vec) = toValue $ fmap (jsonToDS exL) vec
 jsonToDS exL (JSON.Object hmap) =
-    encode $
+    toValue $
         entity & eProperties ?~ entityProperties
             (convertWithIndex exL hmap)
 
@@ -69,31 +50,31 @@ convertWithIndex indxExcl = Map.mapWithKey $ \k v -> convertValue v (k `elem` in
 
 
 -- | Construct a 'JSON.Value' from any value
-class MkJson a where
+class ToJSON' a where
     mkJson :: a -> JSON.Value
 
-instance MkJson Bool where
+instance ToJSON' Bool where
     mkJson = JSON.toJSON
 
-instance MkJson Text where
+instance ToJSON' Text where
     mkJson = JSON.toJSON
 
-instance MkJson Int64 where
+instance ToJSON' Int64 where
     mkJson = JSON.toJSON
 
-instance MkJson Double where
+instance ToJSON' Double where
     mkJson = JSON.toJSON
 
-instance MkJson Sci.Scientific where
+instance ToJSON' Sci.Scientific where
     mkJson = JSON.toJSON
 
-instance MkJson DS.ValueNullValue where
+instance ToJSON' DS.ValueNullValue where
     mkJson _ = JSON.Null
 
-instance MkJson DS.ArrayValue where
+instance ToJSON' DS.ArrayValue where
     mkJson  = JSON.toJSON . fmap jsonFromDS . (^. avValues)
 
-instance MkJson DS.Entity where
+instance ToJSON' DS.Entity where
     mkJson e = JSON.Object $
         fmap jsonFromDS . view epAddtional .
         fromMaybe (entityProperties Map.empty) $
@@ -102,14 +83,13 @@ instance MkJson DS.Entity where
 jsonFromDS :: DS.Value -> JSON.Value
 jsonFromDS val =
     let parseRes =
-                mkJson <$> (decodeMaybe val :: Maybe Bool)
-            <|> mkJson <$> (decodeMaybe val :: Maybe Text)
-            <|> mkJson <$> (decodeMaybe val :: Maybe Double)
-            <|> mkJson <$> (decodeMaybe val :: Maybe Int64)
-            <|> mkJson <$> (decodeMaybe val :: Maybe DS.Entity)
-            <|> mkJson <$> (decodeMaybe val :: Maybe DS.ArrayValue)
-            <|> mkJson <$> (decodeMaybe val :: Maybe DS.ValueNullValue)
-            <|> mkJson <$> (decodeNative val :: Maybe Sci.Scientific)
+                mkJson <$> (fromValue val :: Maybe Bool)
+            <|> mkJson <$> (fromValue val :: Maybe DS.ValueNullValue)
+            <|> mkJson <$> (fromValue val :: Maybe Text)
+            <|> mkJson <$> (fromValue val :: Maybe DS.Entity)
+            <|> mkJson <$> (fromValue val :: Maybe Sci.Scientific)
+            <|> mkJson <$> (fromValue val :: Maybe DS.ArrayValue)
+
     in
         fromMaybe JSON.Null parseRes    -- (fail "DS.Value -> JSON parse fail")
 

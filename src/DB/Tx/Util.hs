@@ -9,8 +9,9 @@ module DB.Tx.Util
 where
 
 import Util
+import DB.Types
+import qualified DB.Util.Error as Util
 import Network.Google as Google
-import qualified Control.Monad.Catch as      Catch
 
 
 -- |Rollback. Finish the transaction without doing anything.
@@ -48,5 +49,5 @@ txBeginUnsafe projectId = do
             Just tid -> return tid
             Nothing  -> Util.internalError $
                 "CloudStore API BUG. BeginTransactionResponse: " ++
-                "Transaction identifier not present"
+                "Transaction identifier not present" ++ show txBeginRes
 

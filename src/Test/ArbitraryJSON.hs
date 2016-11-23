@@ -11,8 +11,8 @@ instance Arbitrary Value where
   arbitrary = oneof [obj, arr]
     where
     json = oneof [obj, arr, str, num, bl, nullg]
-    obj = object <$> vectorOf 3 ((.=) <$> arbitrary <*> json)
-    arr = Array . V.fromList <$> vectorOf 3 json
+    obj = object <$> vectorOf 2 ((.=) <$> arbitrary <*> json)
+    arr = Array . V.fromList <$> vectorOf 4 json
     str = String <$> arbitrary
     num = fmap Number $ scientific <$> arbitrary <*> arbitrary
     bl = Bool <$> arbitrary

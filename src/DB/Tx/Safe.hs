@@ -6,9 +6,8 @@ module DB.Tx.Safe
 )
 where
 
-import Util
 import DB.Tx.Util
-import Network.Google as Google
+import DB.Types
 import qualified Control.Monad.Catch as      Catch
 
 
@@ -16,7 +15,7 @@ import qualified Control.Monad.Catch as      Catch
 --  The handle will be safely released both if an exception
 --   occurs in "f", and if no 'CommitResponse' is returned by
 --   "f".
-withTx :: ( MonadCatch m
+withTx :: ( Catch.MonadCatch m
           , MonadGoogle '[AuthDatastore] m
           ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
        => ProjectId

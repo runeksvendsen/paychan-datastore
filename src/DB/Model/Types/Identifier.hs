@@ -1,6 +1,6 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, FlexibleInstances #-}
 
-module DB.Model.Identifier where
+module DB.Model.Types.Identifier where
 
 -- import           DB.Model.Storable
 import           Types
@@ -8,12 +8,11 @@ import           Types
 
 import           PromissoryNote                   (PromissoryNote, UUID)
 import qualified PromissoryNote                 as Note
-import qualified Data.Bitcoin.PaymentChannel    as Pay
+-- import qualified Data.Bitcoin.PaymentChannel    as Pay
 import qualified Data.ByteString.Base16         as B16
 import qualified Data.Serialize                 as Bin
 import           Data.String.Conversions          (cs)
 import           Data.Typeable
-
 
 
 
@@ -42,7 +41,7 @@ instance Identifier SendPubKey
     where objectId = Right . encodeHex
 
 instance Identifier RecvPayChan
-    where objectId = objectId . Pay.getSenderPubKey
+    where objectId _ = Left 1   -- objectId . Pay.getSenderPubKey
 
 instance Identifier UUID
     where objectId = Right . encodeHex
@@ -51,15 +50,12 @@ instance Identifier PromissoryNote
     where objectId = objectId . Note.getID
 
 
-
-
-
 encodeHex :: Bin.Serialize a => a -> Text
 encodeHex = cs . B16.encode . Bin.encode
 
--- showIdent :: Ident a -> String
--- showIdent (Ident i) = cs $ typeStr <> ":" <> either (cs . show) id i
---     where typeStr = cs $ show (typeOf (undefined :: a))
+instance Typeable i => Show (Ident i) where
+    show (Ident i) = typeStr ++ ":" ++ either show show i
+        where typeStr = show (typeOf (undefined :: i))
 
 
 -- ^ Get type identifier from an object instance.

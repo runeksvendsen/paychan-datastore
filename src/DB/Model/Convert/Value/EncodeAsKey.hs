@@ -1,7 +1,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-module DB.Model.NativeConvert where
+module DB.Model.Convert.Value.EncodeAsKey where
 
-import DB.Model.NativeValue (encode, decode)
+import DB.Model.Convert.Value.Native (encode, decodeMaybe)
+-- import Types
 import Util
 import qualified Network.Google.Datastore as DS
 import Data.Typeable
@@ -9,20 +10,19 @@ import Data.Text (Text)
 import qualified Data.Scientific        as Sci
 
 
--- |Store any type inside a 'DS.Value', by encoding it as a string,
--- and putting it inside a 'DS.Key'.
-class Typeable a => ConvertNative a where
+-- | Encode any type in a 'DS.Key' as a string
+class Typeable a => EncodeAsKey a where
     toStr   :: a -> Text
     fromStr :: Text -> Maybe a
 
-toKey :: forall a. ConvertNative a => a -> DS.Key
+toKey :: forall a. EncodeAsKey a => a -> DS.Key
 toKey a = DS.key & DS.kPath .~
     [ DS.pathElement &
           DS.peKind ?~ cs typeStr &
           DS.peName ?~ toStr a
     ] where typeStr = show (typeOf (undefined :: a))
 
-fromKey :: forall a. ConvertNative a => DS.Key -> Either String a
+fromKey :: forall a. EncodeAsKey a => DS.Key -> Either String a
 fromKey k = case k ^. DS.kPath of
     [elm] -> getKind elm >>= checkKind >> getName elm >>= maybe (Left "Decode fail") Right . fromStr
     x     -> Left $ "Not just 1 PathElement: " ++ show x
@@ -32,13 +32,13 @@ fromKey k = case k ^. DS.kPath of
     getName e = maybe (Left "Missing name") Right $ e ^. DS.peName
     typeStr = cs $ show (typeOf (undefined :: a))
 
-encodeNative :: ConvertNative a => a -> DS.Value
-encodeNative = encode . toKey
+encodeAsKey :: EncodeAsKey a => a -> DS.Value
+encodeAsKey = encode . toKey
 
-decodeNative :: forall a. ConvertNative a => DS.Value -> Maybe a
-decodeNative = either (const Nothing) Just . fromKey . decode
+decodeAsKey :: forall a. EncodeAsKey a => DS.Value -> Maybe a
+decodeAsKey v = decodeMaybe v >>= either (const Nothing) Just . fromKey
 
-instance ConvertNative Sci.Scientific where
+instance EncodeAsKey Sci.Scientific where
     toStr = cs . show
     fromStr = Just . read . cs
 

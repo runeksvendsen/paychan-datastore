@@ -12,9 +12,13 @@ import Util
 import qualified Data.HashMap.Strict        as Map
 import qualified Network.Google.Datastore   as DS
 
+import Debug.Trace
+
+
 encodeKey :: HasKey a => a -> DS.Key
 encodeKey a = DS.key &
-    DS.kPath .~ ( ancestors a ++ [ toPathElem (getIdent a) ] )
+    DS.kPath .~ ( show keyPath `trace` keyPath )
+        where keyPath = ancestors a ++ [ toPathElem (getIdent a) ]
 
 parseKey :: forall a. Identifier a => DS.Key -> Either String (Ident a, [DS.PathElement])
 parseKey a = case a ^. DS.kPath of

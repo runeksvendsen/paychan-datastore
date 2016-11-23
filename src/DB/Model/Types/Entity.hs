@@ -62,8 +62,8 @@ class (Identifier a, JSON.FromJSON a) => IsEntity a where
     excludeKeys :: a -> [NoIndexKey]
     excludeKeys _ = []
 
-instance HasKey SendPubKey where
-    ancestors a = [toPathElem $ getIdent a]
+-- instance HasKey SendPubKey where
+--     ancestors a = [toPathElem $ getIdent a]
 --     key _ = Ident $ Left 1 :: Ident RecvPayChan
 
 instance HasKey RecvPayChan where

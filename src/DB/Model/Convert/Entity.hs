@@ -36,7 +36,7 @@ encodeEntity a = Tagged $ DS.entity
 parseEntity :: forall a k. (IsDescendant a k) => Tagged a DS.Entity -> Either String a
 parseEntity eT =
     getNativeKey >>= \k -> entityFromJson (Tagged props) >>= \a ->   --  parseKey >>= \(idnt, peL) ->
-            if k == reEncodeKey a then -- reEncodeKey a == Right (idnt, peL) then
+            if parseKey k == parseKey (reEncodeKey a) then -- reEncodeKey a == Right (idnt, peL) then
                 Right a
             else
                 Left $ "BUG: Native Entity's key does not match parsed entity's re-encoded key" ++
@@ -46,6 +46,7 @@ parseEntity eT =
     nativeKeyE = maybe (Left "No key in Entity") Right (unTagged eT ^. DS.eKey)
     props = fromMaybe Map.empty $ ( ^. DS.epAddtional ) <$> unTagged eT ^. DS.eProperties
     reEncodeKey a = encodeKey (getKey a) :: Tagged a DS.Key
+
 
 
 

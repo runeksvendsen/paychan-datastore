@@ -19,7 +19,8 @@ txRollback :: ( MonadGoogle '[AuthDatastore] m
               ,    HasScope '[AuthDatastore] ProjectsRollback )
            => ProjectId -> TxId -> m RollbackResponse
 txRollback projectId tx =
-    Google.send (projectsRollback rollbackReq projectId)
+    Google.send (projectsRollback rollbackReq projectId) >>=
+        \res -> liftIO (putStrLn "INFO: Transaction rolled back.") >> return res
   where
     rollbackReq = rollbackRequest & rrTransaction ?~ tx
 

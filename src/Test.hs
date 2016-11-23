@@ -25,7 +25,7 @@ payCount :: Word
 payCount = 100
 
 threadCount :: Word
-threadCount = 100
+threadCount = 10
 
 main :: IO ()
 main = do

@@ -86,7 +86,7 @@ doPayment pid key payment =
         now <- Clock.getCurrentTime
         case Pay.recvPayment now recvChan payment of
             Right (a,s) -> do
-                putStr (" " ++ show (toInteger a)) >> hFlush stdout
+--                 putStr (" " ++ show (toInteger a)) >> hFlush stdout
                 return $ Right s
             Left e -> do
                 putStrLn $ "recvPayment error :( " ++ show e

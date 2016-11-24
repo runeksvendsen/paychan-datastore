@@ -56,7 +56,7 @@ testDB pid Pay.ChannelPairResult{..} = do
     -- Safe lookup + update/rollback
 --     liftIO $ putStr "   Payments received:"
     res <- M.forM paymentList (doPayment pid sampleKey)
-    _ <- DB.removeChan pid sampleKey
+--     _ <- DB.removeChan pid sampleKey
     return $ length res
 
 defaultAppDatastoreEnv :: IO (Env '[AuthDatastore])

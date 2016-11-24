@@ -10,15 +10,26 @@ import Util
 import qualified Network.Google.Datastore as DS
 
 
--- mkLookup :: HasAncestors k => k -> DS.LookupRequest
-mkLookup :: forall a k. IsDescendant a k
-         => k
+mkLookup :: forall a anc.
+            HasAncestor a anc
+         => Ident anc
+         -> Ident a
          -> Tagged a DS.LookupRequest
-mkLookup k = Tagged $ lookupRequest & lrKeys .~ [ unTagged (encodeKey k :: Tagged a DS.Key) ]
+mkLookup anc a = Tagged $ lookupRequest & lrKeys .~
+    [ unTagged (encodeKey anc a :: Tagged a DS.Key) ]
 
-parseLookupRes :: forall a k. IsDescendant a k
+-- mkLookupDescendants :: forall a anc.
+--             DeriveAncestor a anc
+--          => Ident anc
+--          -> Tagged a DS.LookupRequest
+-- mkLookupDescendants anc = Tagged $ lookupRequest & lrKeys .~
+--     [ unTagged (encodeAncestorKey anc :: Tagged anc DS.Key) ]
+
+
+parseLookupRes :: forall a anc.
+                  HasAncestor a anc
                => Tagged a DS.LookupResponse
-               -> Either String [(a, EntityVersion)]
+               -> Either String [ ((a,Ident anc), EntityVersion) ]
 parseLookupRes lookupRes = fmapL ("LookupResponse: " ++) $
     if parseErrors `is` not . null then Left $ head parseErrors else Right $ rights parseRes
   where
@@ -28,7 +39,7 @@ parseLookupRes lookupRes = fmapL ("LookupResponse: " ++) $
     parse entRes = case entRes ^. erEntity of
             Nothing  -> Left "Empty entityResult"
             Just ent -> parseEntity (Tagged ent :: Tagged a DS.Entity) >>=
-                    \orig -> Right (orig :: a, ver entRes)
+                    \(orig,anc) -> Right ((orig,anc), ver entRes)
 
 
 infixr 8 `is`

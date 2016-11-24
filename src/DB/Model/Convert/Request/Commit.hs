@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphan-instances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module DB.Model.Convert.Request.Commit where
 
@@ -11,21 +12,22 @@ import Network.Google.Datastore hiding (Entity, key)
 
 
 
-mkInsert :: forall a k. (IsDescendant a k) => a -> Tagged a DS.CommitRequest
-mkInsert a = Tagged $ mutationReq
-    [ mutation & mInsert ?~ unTagged (encodeEntity a :: Tagged a DS.Entity) ]
+mkInsert :: forall a anc. HasAncestor a anc => Ident anc -> a -> Tagged a DS.CommitRequest
+mkInsert anc a = Tagged $ mutationReq
+    [ mutation & mInsert ?~ unTagged (encodeEntity anc a :: Tagged a DS.Entity) ]
 
-mkUpsert :: forall a k. (IsDescendant a k) => a -> Tagged a DS.CommitRequest
-mkUpsert a = Tagged $ mutationReq
-    [ mutation & mUpsert ?~ unTagged (encodeEntity a :: Tagged a DS.Entity) ]
+mkUpsert :: forall a anc. HasAncestor a anc => Ident anc -> a -> Tagged a DS.CommitRequest
+mkUpsert anc a = Tagged $ mutationReq
+    [ mutation & mUpsert ?~ unTagged (encodeEntity anc a :: Tagged a DS.Entity) ]
 
-mkUpdate :: forall a k. (IsDescendant a k) => a -> Tagged a DS.CommitRequest
-mkUpdate a = Tagged $ mutationReq
-    [ mutation & mUpdate ?~ unTagged (encodeEntity a :: Tagged a DS.Entity) ]
+mkUpdate :: forall a anc. HasAncestor a anc => Ident anc -> a -> Tagged a DS.CommitRequest
+mkUpdate anc a = Tagged $ mutationReq
+    [ mutation & mUpdate ?~ unTagged (encodeEntity anc a :: Tagged a DS.Entity) ]
 
-mkDelete :: forall a k. IsDescendant a k => k -> Tagged a DS.CommitRequest
-mkDelete a = Tagged $ mutationReq
-    [ mutation & mDelete ?~ unTagged (encodeKey a :: Tagged a DS.Key)]
+
+mkDelete :: forall a anc. HasAncestor a anc => Ident anc -> Ident a -> Tagged a DS.CommitRequest
+mkDelete anc a = Tagged $ mutationReq
+    [ mutation & mDelete ?~ unTagged (encodeKey anc a :: Tagged a DS.Key)]
 
 
 

@@ -6,6 +6,7 @@ module DB.Model.Convert.Properties
   -- * Util
   jsonToDS
 , jsonFromDS
+, decodeProperties
   -- * Type
 , EntityProps
 , NoIndexKey
@@ -14,7 +15,7 @@ module DB.Model.Convert.Properties
 where
 
 import DB.Model.Convert.Value
-
+import Types
 import Network.Google.Datastore
 import Control.Lens
 
@@ -93,5 +94,11 @@ jsonFromDS val =
     in
         fromMaybe JSON.Null parseRes    -- (fail "DS.Value -> JSON parse fail")
 
+
+decodeProperties :: forall a. JSON.FromJSON a => Tagged a EntityProps -> Either String a
+decodeProperties propsT =
+    case JSON.fromJSON . JSON.Object $ jsonFromDS <$> unTagged propsT of
+        JSON.Success a -> Right a
+        JSON.Error e        -> Left e
 
 

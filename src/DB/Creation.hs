@@ -7,7 +7,9 @@ import DB.Tx.Safe
 import DB.Util.Error
 import DB.Model.Convert
 
+-- import Data.Void
 
+-- type Root = Ident Void
 
 insertChan :: ( MonadGoogle '[AuthDatastore] m
               , HasScope '[AuthDatastore] ProjectsBeginTransaction )
@@ -15,19 +17,20 @@ insertChan :: ( MonadGoogle '[AuthDatastore] m
            -> RecvPayChan
            -> m (Tagged RecvPayChan CommitResponse)
 insertChan projectId chan =
-    runReqWithTx projectId (mkInsert chan)
+    runReqWithTx projectId (mkInsert (undefined :: Root) chan)
 --     where insertRequest = commitRequest
 --             & crMutations .~
 --                 [ mutation & mInsert ?~ State.mkEntity projectId chan
 --                 , mutation & mInsert ?~ Index.mkEntity  projectId chan ]
 
 removeChan :: ( MonadGoogle '[AuthDatastore] m
-              ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
+              ,    HasScope '[AuthDatastore] ProjectsBeginTransaction
+              )
            => ProjectId
            -> SendPubKey
            -> m (Tagged RecvPayChan CommitResponse)
 removeChan projectId key =
-    runReqWithTx projectId (mkDelete key)
+    runReqWithTx projectId $ mkDelete (undefined :: Root) (getIdentifier key)
 
 runReqWithTx :: forall a m.
              ( MonadGoogle '[AuthDatastore] m

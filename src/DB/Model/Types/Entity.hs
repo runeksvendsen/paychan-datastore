@@ -3,8 +3,6 @@
 {-# LANGUAGE MultiParamTypeClasses, ScopedTypeVariables #-}
 module DB.Model.Types.Entity
 (
---   IsEntity
--- , Entity(..), mkEntity, parseEntity'
   module DB.Model.Types.Entity
 , module DB.Model.Types.Identifier
 , module DB.Model.Convert.Properties
@@ -13,72 +11,52 @@ where
 
 import DB.Model.Types.Identifier
 import DB.Model.Convert.Properties
-import DB.Model.Convert.Identifier
 
 import           Types
-import           Util
 import           PromissoryNote                   (PromissoryNote, UUID)
-import           PromissoryNote                 as Note
-import qualified Data.Bitcoin.PaymentChannel    as Pay
 import qualified Data.Aeson                     as JSON
-import           Data.Typeable
-import qualified Network.Google.Datastore as DS
+import qualified Network.Google.Datastore       as DS
+import           Data.Void                        (Void)
+import qualified Data.HashMap.Strict    as Map
 
 
-type NativeEntity a = Tagged a DS.Entity
+class (HasProperties a, Identifier i) => HasIdentifier a i | a -> i where
+    getIdentifier :: i -> Ident a
+    getIdentifier k = Ident $ objectId (getIdent k) :: Ident a
 
--- | Isomorphic to 'DS.Key' (contains: "kind" + id/name + optional ancesor path)
-data EntityKey a = EntityKey
-    { ident         :: Ident a
-    , ancestors'    :: [DS.PathElement]
-    }
-
--- | Isomorphic to 'DS.Entity' (contains: key + properties)
-data Entity a = Entity
-    { entKey        :: EntityKey a
-    , entityProps'  :: EntityProps
-    }
-
-class (IsEntity a, HasDescendant k) => IsDescendant a k | a -> k where
-    getKey           :: a -> k
-    ancestorIdent    :: a -> Ident k
-    entityIdent      :: a -> [DS.PathElement]
-
-instance IsDescendant RecvPayChan SendPubKey where
-    entityIdent = descPathElem . getKey
-    ancestorIdent = getIdent . getKey
-    getKey = Pay.getSenderPubKey
+instance HasIdentifier RecvPayChan SendPubKey
+instance HasIdentifier PromissoryNote UUID
 
 
-class Identifier k => HasDescendant k where
-    descPathElem :: k -> [DS.PathElement]
+class (HasProperties a, Identifier a) => IsEntity a
+instance IsEntity RecvPayChan
+instance IsEntity PromissoryNote
+instance IsEntity Void
 
-instance HasDescendant SendPubKey where
-    descPathElem _ = [ toPathElem (Ident $ Left 1 :: Ident RecvPayChan) ]
+
+class (IsEntity a, IsEntity anc) => HasAncestor a anc
+
+instance HasAncestor RecvPayChan Void
+instance HasAncestor PromissoryNote RecvPayChan
 
 
-class (Identifier a, JSON.FromJSON a) => IsEntity a where
+class (JSON.FromJSON a) => HasProperties a where
     properties  :: a -> JSON.Object
     excludeKeys :: a -> [NoIndexKey]
     excludeKeys _ = []
 
-instance IsEntity RecvPayChan
+instance HasProperties Void
+    where properties _ = Map.empty
+instance JSON.FromJSON Void where
+    parseJSON = mempty
+
+instance HasProperties RecvPayChan
     where properties = (\(JSON.Object o) -> o) . JSON.toJSON
           excludeKeys _ = ["pcsPaymentSignature"]
 
-instance IsEntity PromissoryNote
+instance HasProperties PromissoryNote
     where properties = (\(JSON.Object o) -> o) . JSON.toJSON
           excludeKeys _ = ["server_sig"]
 
 
--- mkChanKey :: forall a. Identifier a => a -> EntityKey RecvPayChan
--- mkChanKey sendPK =
---     EntityKey chanKey [ toPathElem $ getIdent sendPK ]
---         where chanKey = Ident $ Left 1 :: Ident RecvPayChan
-
-entityFromJson :: forall a. JSON.FromJSON a => Tagged a EntityProps -> Either String a
-entityFromJson propsT =
-    case JSON.fromJSON . JSON.Object $ jsonFromDS <$> unTagged propsT of
-        JSON.Success a -> Right a
-        JSON.Error e        -> Left e
 

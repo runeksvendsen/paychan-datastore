@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables, FlexibleInstances #-}
-
 module DB.Model.Types.Identifier where
 
 -- import           DB.Model.Storable
@@ -8,14 +7,16 @@ import           Types
 
 import           PromissoryNote                   (PromissoryNote, UUID)
 import qualified PromissoryNote                 as Note
--- import qualified Data.Bitcoin.PaymentChannel    as Pay
+import qualified Data.Bitcoin.PaymentChannel    as Pay
 import qualified Data.ByteString.Base16         as B16
 import qualified Data.Serialize                 as Bin
 import           Data.String.Conversions          (cs)
 import           Data.Typeable
+import           Data.Void                        (Void)
+import qualified Network.Google.Datastore   as DS
 
 
-
+type Root = Ident Void
 
 data Ident a = Ident
     { iId       :: Either Int64 Text
@@ -31,6 +32,10 @@ class Typeable a => Identifier a where
 getIdent :: forall a. Identifier a => a -> Ident a
 getIdent a = Ident (objectId a)
 
+-- | Root entities have an ancestor 'Identifier' of @Ident Void@
+instance Identifier Void where
+    objectId _ = Left 0
+
 instance Identifier (Either Int64 Text) where
     objectId = id
 
@@ -40,11 +45,11 @@ instance Typeable a => Identifier (Ident a) where
 instance Identifier SendPubKey
     where objectId = Right . encodeHex
 
-instance Identifier RecvPayChan
-    where objectId _ = Left 1   -- objectId . Pay.getSenderPubKey
-
 instance Identifier UUID
     where objectId = Right . encodeHex
+
+instance Identifier RecvPayChan
+    where objectId = objectId . Pay.getSenderPubKey
 
 instance Identifier PromissoryNote
     where objectId = objectId . Note.getID
@@ -54,8 +59,10 @@ encodeHex :: Bin.Serialize a => a -> Text
 encodeHex = cs . B16.encode . Bin.encode
 
 instance Typeable i => Show (Ident i) where
-    show (Ident i) = typeStr ++ ":" ++ either show show i
-        where typeStr = show (typeOf (undefined :: i))
+    show i
+        | objectId i == Left 0 = "/"
+        | otherwise = typeStr ++ ":" ++ either show show (objectId i)
+      where typeStr = show (typeOf (undefined :: i))
 
 
 -- ^ Get type identifier from an object instance.

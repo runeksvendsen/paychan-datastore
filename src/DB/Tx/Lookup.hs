@@ -13,19 +13,20 @@ import           Util
 import           Network.Google as Google
 
 
-txLookup :: forall a k m.
+txLookup :: forall a anc m.
             ( MonadGoogle '[AuthDatastore] m
             , HasScope    '[AuthDatastore] ProjectsLookup
-            , IsDescendant a k)
+            , HasAncestor a anc)
            => ProjectId
            -> TxId
-           -> k
-           -> m ( Either String [(a, EntityVersion)] )
-txLookup projectId tx key =
+           -> Ident anc
+           -> Ident a
+           -> m ( Either String [ ((a, Ident anc), EntityVersion) ] )
+txLookup projectId tx anc a =
     parseLookupRes <$> reqRes
         where
             reqRes = Tagged <$> Google.send (projectsLookup reqWithTx projectId) :: m (Tagged a LookupResponse)
-            reqWithTx = unTagged (mkLookup key :: Tagged a LookupRequest) &
+            reqWithTx = unTagged (mkLookup anc a :: Tagged a LookupRequest) &
                 lrReadOptions ?~ (readOptions & roTransaction ?~ tx)
 
 

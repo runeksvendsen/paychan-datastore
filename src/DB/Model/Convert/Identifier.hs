@@ -16,9 +16,9 @@ import           Data.Typeable
 -- identKey Root </> identKey (getIdentifier sendPK)
 
 identKey :: forall a. Identifier a => Ident a -> Tagged a DS.Key
-identKey i
+identKey idn@(Ident i)
     | objectId i == Left 0 = Tagged mempty
-    | otherwise = Tagged $ DS.key & DS.kPath .~ [ unTagged (toPathElem i :: Tagged a DS.PathElement) ]
+    | otherwise = Tagged $ DS.key & DS.kPath .~ [ unTagged (toPathElem idn :: Tagged a DS.PathElement) ]
 
 instance Monoid DS.Key where
     mempty = DS.key

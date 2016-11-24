@@ -22,7 +22,7 @@ import qualified Data.HashMap.Strict    as Map
 
 class (HasProperties a, Identifier i) => HasIdentifier a i | a -> i where
     getIdentifier :: i -> Ident a
-    getIdentifier k = Ident $ objectId (getIdent k) :: Ident a
+    getIdentifier k = Ident $ objectId k :: Ident a
 
 instance HasIdentifier RecvPayChan SendPubKey
 instance HasIdentifier PromissoryNote UUID

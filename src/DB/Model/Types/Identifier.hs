@@ -39,8 +39,8 @@ instance Identifier Void where
 instance Identifier (Either Int64 Text) where
     objectId = id
 
-instance Typeable a => Identifier (Ident a) where
-    objectId (Ident iid) = iid
+-- instance Typeable a => Identifier (Ident a) where
+--     objectId (Ident iid) = iid
 
 instance Identifier SendPubKey
     where objectId = Right . encodeHex
@@ -58,8 +58,8 @@ instance Identifier PromissoryNote
 encodeHex :: Bin.Serialize a => a -> Text
 encodeHex = cs . B16.encode . Bin.encode
 
-instance Typeable i => Show (Ident i) where
-    show i
+instance Identifier i => Show (Ident i) where
+    show (Ident i)
         | objectId i == Left 0 = "/"
         | otherwise = typeStr ++ ":" ++ either show show (objectId i)
       where typeStr = show (typeOf (undefined :: i))

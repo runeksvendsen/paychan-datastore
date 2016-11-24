@@ -80,7 +80,7 @@ doPayment :: ( MonadGoogle '[AuthDatastore] m )
           => ProjectId
           -> Pay.SendPubKey
           -> Pay.FullPayment
-          -> m (Either Pay.PayChanError Pay.RecvPayChan)
+          -> m (Either Pay.PayChanError RecvPayChan)
 doPayment pid key payment =
     DB.withDBState pid key $ \recvChan -> do
         now <- Clock.getCurrentTime

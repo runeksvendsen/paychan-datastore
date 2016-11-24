@@ -17,7 +17,7 @@ packages:
     - haskoin-wallet
 - location:
     git: https://github.com/runeksvendsen/bitcoin-payment-channel.git
-    commit: e4c87b97fb8401ae4a8805472ff47f3e3675340a
+    commit: 851f1869fe3b3f35cd1f3be3493db531e79c6ff9
   extra-dep: true
 - location:
     git: https://github.com/brendanhay/gogol.git

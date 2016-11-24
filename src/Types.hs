@@ -5,7 +5,7 @@ module Types
 -- , module Network.Google
 -- , module Network.Google.Datastore
 , Pay.SendPubKey
-, Pay.RecvPayChan
+, RecvPayChan
 , Pay.PayChanError
 , Pay.BitcoinAmount
 , Catch.MonadCatch
@@ -28,6 +28,8 @@ import qualified Control.Monad.Catch as      Catch
 
 import           Network.Google.Datastore
 
+
+type RecvPayChan = Pay.RecvPayChanX
 type ProjectId = T.Text
 
 type AuthCloudPlatform = "https://www.googleapis.com/auth/cloud-platform"

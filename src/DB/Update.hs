@@ -31,7 +31,7 @@ withDBState :: ( MonadCatch m
             -> m (Either PayChanError RecvPayChan)
 withDBState pid sendPK f = do
     (eitherRes,_) <- withTx pid $ \tx -> do
-        resE <- txLookup pid tx (undefined :: Root) (getIdentifier sendPK)
+        resE <- txLookup pid tx root (getIdentifier sendPK)
         ((chan,_),_) <- case resE of
             Right resL -> return $ head resL
             Left e     -> error e
@@ -39,7 +39,7 @@ withDBState pid sendPK f = do
         case eitherRes of
             Left  _        -> return (eitherRes, Nothing)
             Right newState -> return (eitherRes, Just $ unTagged $
-                mkUpdate (undefined :: Root) newState)
+                mkUpdate root newState)
     return eitherRes
 
 

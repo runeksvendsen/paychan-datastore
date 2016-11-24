@@ -17,7 +17,7 @@ insertChan :: ( MonadGoogle '[AuthDatastore] m
            -> RecvPayChan
            -> m (Tagged RecvPayChan CommitResponse)
 insertChan projectId chan =
-    runReqWithTx projectId (mkInsert (undefined :: Root) chan)
+    runReqWithTx projectId (mkInsert root chan)
 --     where insertRequest = commitRequest
 --             & crMutations .~
 --                 [ mutation & mInsert ?~ State.mkEntity projectId chan
@@ -30,7 +30,7 @@ removeChan :: ( MonadGoogle '[AuthDatastore] m
            -> SendPubKey
            -> m (Tagged RecvPayChan CommitResponse)
 removeChan projectId key =
-    runReqWithTx projectId $ mkDelete (undefined :: Root) (getIdentifier key)
+    runReqWithTx projectId $ mkDelete root (getIdentifier key)
 
 runReqWithTx :: forall a m.
              ( MonadGoogle '[AuthDatastore] m

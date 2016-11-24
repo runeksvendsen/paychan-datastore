@@ -17,6 +17,8 @@ import qualified Network.Google.Datastore   as DS
 
 
 type Root = Ident Void
+root :: Root
+root = Ident $ Left 0
 
 data Ident a = Ident
     { iId       :: Either Int64 Text

@@ -5,7 +5,7 @@ module Types
 -- , module Network.Google
 -- , module Network.Google.Datastore
 , Pay.SendPubKey
-, RecvPayChan
+, PromissoryNote, Note, UUID
 , Pay.PayChanError
 , Pay.BitcoinAmount
 , Catch.MonadCatch
@@ -17,18 +17,20 @@ module Types
 )
 where
 
-import           Data.Tagged (Tagged(..))
+
 import qualified Data.Bitcoin.PaymentChannel.Test as Pay
+import           PromissoryNote                   (PromissoryNote, UUID)
+
+import           Data.Tagged (Tagged(..))
+import           Control.Monad.IO.Class     (MonadIO)
+import qualified Control.Monad.Catch as      Catch
+
 import           Data.ByteString as BS
 import           Data.Int                         (Int64)
 import qualified Data.Text                      as T
-import           Control.Monad.IO.Class     (MonadIO)
-
-import qualified Control.Monad.Catch as      Catch
-
-import           Network.Google.Datastore
 
 
+type Note = PromissoryNote
 type RecvPayChan = Pay.RecvPayChanX
 type ProjectId = T.Text
 

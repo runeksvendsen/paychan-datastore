@@ -21,13 +21,6 @@ import           Data.Void                    (Void)
 encodeKey :: forall a anc. HasAncestor a anc => Ident anc -> Ident a -> Tagged a DS.Key
 encodeKey anc a = identKey anc </> identKey a
 
-
--- encodeCompleteKey :: forall a anc. HasAncestor a anc => Ident anc -> Ident a -> Tagged a DS.Key
--- encodeCompleteKey anc a = Tagged $
---     unTagged (encodeKey anc :: Tagged anc DS.Key) <>
---         mkDSKey [ toPathElem a ]
---
-
 parseKey :: forall a anc. HasAncestor a anc => Tagged a DS.Key -> Either String (Ident anc, Ident a)
 parseKey a = case unTagged a ^. DS.kPath of
     [idn]       -> (,) (Ident $ Left 0) <$> parsePathElem (Tagged idn)

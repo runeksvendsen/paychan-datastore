@@ -27,12 +27,6 @@ instance Monoid DS.Key where
             (key1 ^. DS.kPath) ++
             (key2 ^. DS.kPath)
 
-(</>) ::
-         Tagged a DS.Key
-      -> Tagged b DS.Key
-      -> Tagged b DS.Key
-key1 </> key2 = Tagged $ unTagged key1 <> unTagged key2
-
 mkDSKey :: Tagged i DS.PathElement -> Tagged i DS.Key
 mkDSKey peT = Tagged $ DS.key & DS.kPath .~ [ unTagged peT ]
 

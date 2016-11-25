@@ -27,7 +27,7 @@ withDBState :: ( MonadCatch m
                ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
             => ProjectId
             -> SendPubKey
-            -> (RecvPayChan -> IO (Either PayChanError RecvPayChan))
+            -> (RecvPayChan -> IO (Either PayChanError (RecvPayChan,Note)))
             -> m (Either PayChanError RecvPayChan)
 withDBState pid sendPK f = do
     (eitherRes,_) <- withTx pid $ \tx -> do
@@ -38,9 +38,15 @@ withDBState pid sendPK f = do
         eitherRes <- liftIO (f chan)
         case eitherRes of
             Left  _        -> return (eitherRes, Nothing)
-            Right newState -> return (eitherRes, Just $ unTagged $
-                mkUpdate root newState)
-    return eitherRes
+            Right (newState,note) ->
+                return ( eitherRes
+                       , Just $ unTagged $
+                            mkUpdate root newState </>
+                            mkInsert (getIdent newState) note
+                       )
+    return $ case eitherRes of
+        Right (state,_) -> Right state
+        Left e -> Left e
 
 
 -- |Check entity version.

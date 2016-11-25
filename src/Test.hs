@@ -6,11 +6,12 @@ import           Util
 import qualified DB
 import           DB.Types
 import qualified Data.Bitcoin.PaymentChannel.Test as Pay
+import qualified PromissoryNote.Test as Note
 
 import qualified Control.Monad as M
 import qualified Data.Time.Clock as Clock
 import           System.IO                  (stderr, stdout, hFlush)
-import           Test.QuickCheck            (Gen, sample', vectorOf, choose, generate)
+import           Test.QuickCheck            (Gen, arbitrary, sample', vectorOf, choose, generate)
 
 import qualified Network.HTTP.Conduit as HTTP
 import           Network.Google as Google
@@ -86,8 +87,8 @@ doPayment pid key payment =
         now <- Clock.getCurrentTime
         case Pay.recvPayment now recvChan payment of
             Right (a,s) -> do
---                 putStr (" " ++ show (toInteger a)) >> hFlush stdout
-                return $ Right s
+                note <- head <$> sample' (Note.arbNoteOfValue a)
+                return $ Right (s,note)
             Left e -> do
                 putStrLn $ "recvPayment error :( " ++ show e
                 return $ Left e

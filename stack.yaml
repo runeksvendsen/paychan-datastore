@@ -29,7 +29,11 @@ packages:
     - gogol-datastore
 - location:
     git: https://github.com/runeksvendsen/promissory-note-types.git
-    commit: 984b767cc812d8b9627d6f6b99e6967b24019b0f
+    commit: 0ff7e180bf94a9d881b896ed70eb04bb672ef54a
+  extra-dep: true
+- location:
+    git: https://github.com/tsuraan/bytestring-arbitrary.git
+    commit: ce6234d7204d8f1faa3a7c05f4802ead210245ce
   extra-dep: true
 
 extra-deps:

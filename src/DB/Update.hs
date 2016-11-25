@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric, DeriveAnyClass, GADTs, FlexibleContexts, DataKinds, RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables, DeriveAnyClass, GADTs, FlexibleContexts, DataKinds #-}
 module DB.Update
 (
   withDBState
@@ -16,6 +16,8 @@ import           Network.Google as Google
 import qualified Control.Exception        as Except
 import           Control.Exception          (throw)
 import           Data.Maybe                 (fromMaybe)
+
+import Debug.Trace
 
 
 -- |Provide a function which can do anything it wants with a RecvPayChan from the DB,
@@ -40,7 +42,7 @@ withDBState pid sendPK f = do
             Left  _        -> return (eitherRes, Nothing)
             Right (newState,note) ->
                 return ( eitherRes
-                       , Just $ unTagged $
+                       , Just $ unTagged $ traceCommit $
                             mkUpdate root newState </>
                             mkInsert (getIdent newState) note
                        )
@@ -48,6 +50,9 @@ withDBState pid sendPK f = do
         Right (state,_) -> Right state
         Left e -> Left e
 
+
+traceCommit :: forall a. Show a => a -> a
+traceCommit c = show c `trace` c
 
 -- |Check entity version.
 checkCommResponse :: EntityVersion -> CommitResponse -> UpdateResult

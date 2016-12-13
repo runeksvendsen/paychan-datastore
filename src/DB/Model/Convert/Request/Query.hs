@@ -18,7 +18,7 @@ mkQueryReq :: forall a anc.
            -> Text
            -> Tagged a DS.RunQueryRequest
 mkQueryReq ancM query = Tagged $ DS.runQueryRequest & rqrGqlQuery ?~
-    (DS.gqlQuery & DS.gqQueryString ?~ "QUERY:" <> cs completeQuery `trace` completeQuery &
+    (DS.gqlQuery & DS.gqQueryString ?~ (cs completeQuery `trace` completeQuery) &
          gqAllowLiterals ?~ True)
         where completeQuery = query <> ancestorQueryStr
               ancestorQueryStr = cs $ maybe "" mkAncestorStr ancM

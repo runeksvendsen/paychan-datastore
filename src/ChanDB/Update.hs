@@ -89,7 +89,7 @@ withDBStateNote :: ( -- MonadIO m
 withDBStateNote pid sendPK f = do
     (eitherRes,_) <- withTx pid $ \tx -> do
         resE  <- txGetChanState pid tx sendPK
-        noteM <- txGetLastNote pid tx sendPK
+        noteM <- return Nothing -- txGetLastNote pid tx sendPK
         -- Apply user function
         let applyF chan = fmapL PayError <$> f chan noteM
         applyResult <- either (return . Left) applyF resE

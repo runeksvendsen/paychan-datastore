@@ -50,7 +50,7 @@ txAncestorQuery :: forall a anc m.
           -> Text
           -> m ( Either String [ ((a, Ident anc), EntityVersion) ] )
 txAncestorQuery projectId tx anc query =
-    parseQueryRes <$> reqRes
+    cs query `trace` parseQueryRes <$> reqRes
         where
             reqRes :: m (Tagged a RunQueryResponse)
             reqRes = Tagged <$> Google.send (projectsRunQuery reqWithTx projectId)

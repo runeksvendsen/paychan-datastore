@@ -91,7 +91,6 @@ doPayment pid key payment =
             Left e -> error ("recvPayment error :( " ++ show e) >> return (Left e)
   where
     mkNewNote (a,s) prevUUID = do
-          M.when (prevUUID /= Note.zeroUUID) $ error "FAIL... ! :o| "
           newNote <- liftIO $ head <$> sample' (Note.arbNoteOfValue a)
           let newStoredNote = Note.mkStoredNote newNote prevUUID (Pay.channelValueLeft s)
           return $ Right (s,show newStoredNote `trace` newStoredNote)

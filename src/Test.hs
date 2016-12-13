@@ -5,6 +5,7 @@ module Test where
 import           Util
 import qualified ChanDB as DB
 import           DB.Types
+import           DB.Util.Error
 import qualified Data.Bitcoin.PaymentChannel.Test as Pay
 import qualified PromissoryNote.Test as Note
 import qualified PromissoryNote as Note
@@ -87,12 +88,17 @@ doPayment pid key payment =
     DB.withDBStateNote pid key $ \recvChan noteM -> do
         now <- liftIO Clock.getCurrentTime
         case Pay.recvPayment now recvChan payment of
-            Right (a,s) -> mkNewNote (a,s) (maybe Note.zeroUUID Note.getID noteM) now
+            Right (a,s) -> mkNewNote (a,s) now noteM
             Left e -> error ("recvPayment error :( " ++ show e) >> return (Left e)
   where
-    mkNewNote (a,s) prevUUID now = do
+    mkNewNote (a,s) now prevNoteM = do
           newNote <- liftIO $ head <$> sample' (Note.arbNoteOfValue a now)
-          let newStoredNote = Note.mkStoredNote newNote prevUUID (Pay.channelValueLeft s)
+          let noteFromPrev prevPN = either internalError id $
+                Note.mkCheckStoredNote newNote prevPN (Pay.fpPayment payment)
+              newStoredNote = maybe
+                ( Note.mkGenesisNote newNote (Pay.fpPayment payment) )
+                noteFromPrev
+                prevNoteM
           return $ Right (s,show newStoredNote `trace` newStoredNote)
 
 
@@ -100,3 +106,4 @@ doPayment pid key payment =
 --               => (Pay.BitcoinAmount, Pay.RecvPayChanX)
 --               -> Note.UUID
 --               -> m (Either PayChanError (Pay.RecvPayChanX, StoredNote))
+

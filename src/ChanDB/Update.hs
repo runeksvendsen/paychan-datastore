@@ -45,13 +45,7 @@ txGetLastNote :: ( MonadCatch m
               -> m (Maybe StoredNote)
 txGetLastNote pid tx k = do
     let query = "SELECT * FROM StoredNote WHERE most_recent_note = TRUE"
-    resE <- txAncestorQuery pid tx (castIdent $ getIdent k :: Ident RecvPayChan) query
-    tipNoteM <- case resE of
-        Right [((tipNote,_),_)] -> return $ Just tipNote
-        Right []    -> return Nothing
-        Right resL  -> internalError $ "tipNoteLookup: Multiple Notes." ++ show resL
-        Left e      -> internalError $ "txAncestorQuery error:" ++ e
-    return tipNoteM
+    getFirstResult <$> txAncestorQuery pid tx (castIdent $ getIdent k :: Ident RecvPayChan) query
 
 
 withDBState :: ( -- MonadIO m

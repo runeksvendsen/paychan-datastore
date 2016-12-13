@@ -1,12 +1,13 @@
 module DB.Model.Convert.Request
 (
-  module DB.Model.Convert.Request.Commit
-, module DB.Model.Convert.Request.Lookup
+  module Commit
+, module Lookup
+, module Query
 )
 where
 
-import DB.Model.Convert.Request.Commit
-import DB.Model.Convert.Request.Lookup
-
+import DB.Model.Convert.Request.Commit as Commit
+import DB.Model.Convert.Request.Lookup as Lookup
+import DB.Model.Convert.Request.Query  as Query
 
 

@@ -3,10 +3,11 @@
 module Test where
 
 import           Util
-import qualified DB
+import qualified ChanDB as DB
 import           DB.Types
 import qualified Data.Bitcoin.PaymentChannel.Test as Pay
 import qualified PromissoryNote.Test as Note
+import qualified PromissoryNote as Note
 
 import qualified Control.Monad as M
 import qualified Data.Time.Clock as Clock
@@ -55,10 +56,10 @@ testDB pid Pay.ChannelPairResult{..} = do
         paymentList = reverse $ init resPayList
     _ <- DB.insertChan pid sampleRecvChan
     -- Safe lookup + update/rollback
---     liftIO $ putStr "   Payments received:"
     res <- M.forM paymentList (doPayment pid sampleKey)
 --     _ <- DB.removeChan pid sampleKey
     return $ length res
+
 
 defaultAppDatastoreEnv :: IO (Env '[AuthDatastore])
 defaultAppDatastoreEnv = do
@@ -81,16 +82,17 @@ doPayment :: ( MonadGoogle '[AuthDatastore] m )
           => ProjectId
           -> Pay.SendPubKey
           -> Pay.FullPayment
-          -> m (Either Pay.PayChanError RecvPayChan)
+          -> m (Either DB.UpdateErr RecvPayChan)
 doPayment pid key payment =
-    DB.withDBState pid key $ \recvChan -> do
-        now <- Clock.getCurrentTime
+    DB.withDBStateNote pid key $ \recvChan noteM -> do
+        now <- liftIO Clock.getCurrentTime
         case Pay.recvPayment now recvChan payment of
-            Right (a,s) -> do
-                note <- head <$> sample' (Note.arbNoteOfValue a)
-                return $ Right (s,note)
-            Left e -> do
-                putStrLn $ "recvPayment error :( " ++ show e
-                return $ Left e
+            Right (a,s) -> mkNewNote (a,s) (maybe Note.zeroUUID Note.getID noteM)
+            Left e -> error ("recvPayment error :( " ++ show e) >> return (Left e)
+  where
+    mkNewNote (a,s) prevUUID = do
+          newNote <- liftIO $ head <$> sample' (Note.arbNoteOfValue a)
+          let newStoredNote = Note.mkStoredNote newNote prevUUID (Pay.channelValueLeft s)
+          return $ Right (s,show newStoredNote `trace` newStoredNote)
 
 

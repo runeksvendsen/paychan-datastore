@@ -2,28 +2,32 @@ module Util
 (
   module Control.Lens
 , Except.throw
-, fromMaybe, isJust, fromJust
+, fromMaybe, isJust, isNothing, fromJust
 , lefts, rights
 , liftIO
 , cs
 , fmapL
 , (<=<), (>=>)
-, (<>), (</>)
+, (<>), mempty, (</>)
+, trace
 )
 where
 
 import           Control.Monad                  ((<=<), (>=>))
 import           Control.Monad.IO.Class         (liftIO)
-import           Data.Monoid                    ((<>))
+import           Data.Monoid                    ((<>), mempty)
 
 import qualified Control.Exception as Except
 
 import           Control.Lens
-import           Data.Maybe                     (fromMaybe, isJust, fromJust)
+import           Data.Maybe                     (fromMaybe, isJust, isNothing, fromJust)
 import           Data.Either                    (lefts, rights)
 import           Data.String.Conversions        (cs)
 import           Data.EitherR                   (fmapL)
 import           Data.Tagged (Tagged(..))
+
+
+import Debug.Trace (trace)
 
 (</>) :: Monoid a
       => Tagged b a

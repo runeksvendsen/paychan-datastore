@@ -5,7 +5,7 @@ module Types
 -- , module Network.Google
 -- , module Network.Google.Datastore
 , Pay.SendPubKey
-, PromissoryNote, Note, UUID
+, PromissoryNote, StoredNote(..), UUID
 , Pay.PayChanError
 , Pay.BitcoinAmount
 , Catch.MonadCatch
@@ -14,12 +14,13 @@ module Types
 , T.Text
 , Int64
 , Tagged(..)
+-- , setMostRecentNote
 )
 where
 
 
 import qualified Data.Bitcoin.PaymentChannel.Test as Pay
-import           PromissoryNote                   (PromissoryNote, UUID)
+import           PromissoryNote                   (PromissoryNote, StoredNote(..), UUID) -- , setMostRecentNote)
 
 import           Data.Tagged (Tagged(..))
 import           Control.Monad.IO.Class     (MonadIO)

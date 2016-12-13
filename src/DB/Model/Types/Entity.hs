@@ -13,7 +13,7 @@ import DB.Model.Types.Identifier
 import DB.Model.Convert.Properties
 
 import           Types
-import           PromissoryNote                   (PromissoryNote, UUID)
+import           PromissoryNote                   (PromissoryNote, StoredNote, UUID)
 import qualified Data.Aeson                     as JSON
 import qualified Network.Google.Datastore       as DS
 import           Data.Void                        (Void)
@@ -31,6 +31,7 @@ instance HasIdentifier PromissoryNote UUID
 class (HasProperties a, Identifier a) => IsEntity a
 instance IsEntity RecvPayChan
 instance IsEntity PromissoryNote
+instance IsEntity StoredNote
 instance IsEntity Void
 
 
@@ -38,6 +39,7 @@ class (IsEntity a, IsEntity anc) => HasAncestor a anc
 
 instance HasAncestor RecvPayChan Void
 instance HasAncestor PromissoryNote RecvPayChan
+instance HasAncestor StoredNote RecvPayChan
 
 
 class (JSON.FromJSON a) => HasProperties a where
@@ -58,5 +60,8 @@ instance HasProperties PromissoryNote
     where properties = (\(JSON.Object o) -> o) . JSON.toJSON
           excludeKeys _ = ["server_sig"]
 
+instance HasProperties StoredNote
+    where properties = (\(JSON.Object o) -> o) . JSON.toJSON
+          excludeKeys _ = ["server_sig"]
 
 

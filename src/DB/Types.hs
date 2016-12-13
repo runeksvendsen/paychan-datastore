@@ -16,7 +16,7 @@ import           DB.Model.Types.Entity
 
 import qualified Control.Exception as Except
 import qualified Data.ByteString as BS
-import Network.Google.Datastore as Datastore hiding (Entity, key)
+import Network.Google.Datastore as Datastore hiding (Entity, key, query)
 import Network.Google           as Google
 
 

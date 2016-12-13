@@ -7,13 +7,22 @@ import Util
 
 import qualified Network.Google.Datastore as DS
 import           Data.Typeable
-
+import Text.Printf (printf)
 
 -- parsePathElemId :: Identifier a => DS.PathElement -> Either String (Ident a)
 -- parsePathElemId a = parsePathElem a >> iId >>= \id -> Right $ Ident (Left id)
 --     where
 
 -- identKey Root </> identKey (getIdentifier sendPK)
+
+
+-- | Used when referencing ancestor keys in a GQL query string. Example string:
+-- @Key(`ReceiverPaymentChannelI Metadata`, '0336a5e95a8e2e8928836e0e6c45ec39dd8cc292565636e61fa78140da97285361')@
+gqlKeyString :: forall a. Identifier a => Ident a -> Text
+gqlKeyString i =
+    cs (printf "Key(`%s`, %s)" kind identifier :: String)
+    where identifier = either show show (iId i)
+          kind = show (typeOf (undefined :: a))
 
 identKey :: forall a. Identifier a => Ident a -> Tagged a DS.Key
 identKey idn@(Ident i)

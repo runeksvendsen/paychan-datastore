@@ -13,7 +13,6 @@ import qualified Data.Serialize                 as Bin
 import           Data.String.Conversions          (cs)
 import           Data.Typeable
 import           Data.Void                        (Void)
-import qualified Network.Google.Datastore   as DS
 
 
 type Root = Ident Void
@@ -33,6 +32,9 @@ class Typeable a => Identifier a where
 
 getIdent :: forall a. Identifier a => a -> Ident a
 getIdent a = Ident (objectId a)
+
+castIdent :: Ident a -> Ident b
+castIdent (Ident i) = Ident i
 
 -- | Root entities have an ancestor 'Identifier' of @Ident Void@
 instance Identifier Void where
@@ -56,6 +58,8 @@ instance Identifier RecvPayChan
 instance Identifier PromissoryNote
     where objectId = objectId . Note.getID
 
+instance Identifier StoredNote
+    where objectId = objectId . Note.getID
 
 encodeHex :: Bin.Serialize a => a -> Text
 encodeHex = cs . B16.encode . Bin.encode

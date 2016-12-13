@@ -8,10 +8,20 @@ module DB.Tx.Lookup
 where
 
 import           DB.Types
+import           DB.Util.Error
 import           DB.Model.Convert
 import           Util
 import           Network.Google as Google
 
+
+getFirstResult :: Either String [ ((a, Ident anc), EntityVersion) ] -> Maybe a
+getFirstResult resE =
+    either internalError id $
+    fmap getFirst resE
+  where
+    getFirst res = case res of
+        ( ((chan,_),_) : _ ) -> Just chan
+        []                   -> Nothing
 
 txLookup :: forall a anc m.
             ( MonadGoogle '[AuthDatastore] m
@@ -25,9 +35,27 @@ txLookup :: forall a anc m.
 txLookup projectId tx anc a =
     parseLookupRes <$> reqRes
         where
-            reqRes = Tagged <$> Google.send (projectsLookup reqWithTx projectId) :: m (Tagged a LookupResponse)
+            reqRes :: m (Tagged a LookupResponse)
+            reqRes = Tagged <$> Google.send (projectsLookup reqWithTx projectId)
             reqWithTx = unTagged (mkLookup anc a :: Tagged a LookupRequest) &
                 lrReadOptions ?~ (readOptions & roTransaction ?~ tx)
+
+txAncestorQuery :: forall a anc m.
+           ( MonadGoogle '[AuthDatastore] m
+           , HasScope    '[AuthDatastore] ProjectsRunQuery
+           , HasAncestor a anc)
+          => ProjectId
+          -> TxId
+          -> Ident anc
+          -> Text
+          -> m ( Either String [ ((a, Ident anc), EntityVersion) ] )
+txAncestorQuery projectId tx anc query =
+    parseQueryRes <$> reqRes
+        where
+            reqRes :: m (Tagged a RunQueryResponse)
+            reqRes = Tagged <$> Google.send (projectsRunQuery reqWithTx projectId)
+            reqWithTx = unTagged (mkQueryReq (Just anc) query :: Tagged a RunQueryRequest) &
+                rqrReadOptions ?~ (readOptions & roTransaction ?~ tx)
 
 
 -- parseLookupRes :: HasProperties a k => LookupResponse -> Maybe (a, EntityVersion)

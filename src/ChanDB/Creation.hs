@@ -1,15 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveAnyClass, GADTs, FlexibleContexts, DataKinds, ScopedTypeVariables#-}
-module DB.Creation where
+module ChanDB.Creation where
 
 import DB.Types
 import DB.Tx.Safe
 import DB.Util.Error
 import DB.Model.Convert
 
--- import Data.Void
-
--- type Root = Ident Void
 
 insertChan :: ( MonadGoogle '[AuthDatastore] m
               , HasScope '[AuthDatastore] ProjectsBeginTransaction )

@@ -30,18 +30,22 @@ parseLookupRes :: forall a anc.
                   HasAncestor a anc
                => Tagged a DS.LookupResponse
                -> Either String [ ((a,Ident anc), EntityVersion) ]
-parseLookupRes lookupRes = fmapL ("LookupResponse: " ++) $
-    if parseErrors `is` not . null then Left $ head parseErrors else Right $ rights parseRes
+parseLookupRes lookupResT = fmapL ("LookupResponse: " ++) $
+    if not (null parseErrors) then Left $ head parseErrors else Right $ rights parseRes
   where
     parseErrors = lefts parseRes
-    parseRes = map parse (unTagged lookupRes ^. lrFound)
-    ver er = fromMaybe (internalError "EntityResult: Empty version field") (er ^. DS.erVersion)
-    parse entRes = case entRes ^. erEntity of
+    parseRes = map (parseEntityResult . Tagged) $
+        unTagged lookupResT ^. lrFound
+
+
+parseEntityResult :: forall a anc.
+                     HasAncestor a anc
+                  => Tagged a DS.EntityResult
+                  -> Either String ((a,Ident anc), EntityVersion)
+parseEntityResult entResT =
+    case entRes ^. erEntity of
             Nothing  -> Left "Empty entityResult"
             Just ent -> parseEntity (Tagged ent :: Tagged a DS.Entity) >>=
                     \(orig,anc) -> Right ((orig,anc), ver entRes)
-
-
-infixr 8 `is`
-is :: forall t t1. t -> (t -> t1) -> t1
-is a b = b a
+    where ver er = fromMaybe (internalError "EntityResult: Empty version field") (er ^. DS.erVersion)
+          entRes = unTagged entResT

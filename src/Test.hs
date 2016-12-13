@@ -87,11 +87,11 @@ doPayment pid key payment =
     DB.withDBStateNote pid key $ \recvChan noteM -> do
         now <- liftIO Clock.getCurrentTime
         case Pay.recvPayment now recvChan payment of
-            Right (a,s) -> mkNewNote (a,s) (maybe Note.zeroUUID Note.getID noteM)
+            Right (a,s) -> mkNewNote (a,s) (maybe Note.zeroUUID Note.getID noteM) now
             Left e -> error ("recvPayment error :( " ++ show e) >> return (Left e)
   where
-    mkNewNote (a,s) prevUUID = do
-          newNote <- liftIO $ head <$> sample' (Note.arbNoteOfValue a)
+    mkNewNote (a,s) prevUUID now = do
+          newNote <- liftIO $ head <$> sample' (Note.arbNoteOfValue a now)
           let newStoredNote = Note.mkStoredNote newNote prevUUID (Pay.channelValueLeft s)
           return $ Right (s,show newStoredNote `trace` newStoredNote)
 

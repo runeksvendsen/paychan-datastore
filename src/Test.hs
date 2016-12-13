@@ -90,13 +90,14 @@ doPayment pid key payment =
             Right (a,s) -> mkNewNote (a,s) (maybe Note.zeroUUID Note.getID noteM)
             Left e -> error ("recvPayment error :( " ++ show e) >> return (Left e)
   where
---     mkNewNote :: ( MonadGoogle '[AuthDatastore] m, Log.MonadLogger m )
---               => (Pay.BitcoinAmount, Pay.RecvPayChanX)
---               -> Note.UUID
---               -> m (Either PayChanError (Pay.RecvPayChanX, StoredNote))
     mkNewNote (a,s) prevUUID = do
---           Log.logDebugN (cs $ show prevUUID)
+          M.when (prevUUID /= Note.zeroUUID) $ error "FAIL... ! :o| "
           newNote <- liftIO $ head <$> sample' (Note.arbNoteOfValue a)
           let newStoredNote = Note.mkStoredNote newNote prevUUID (Pay.channelValueLeft s)
           return $ Right (s,show newStoredNote `trace` newStoredNote)
 
+
+--     mkNewNote :: ( MonadGoogle '[AuthDatastore] m, Log.MonadLogger m )
+--               => (Pay.BitcoinAmount, Pay.RecvPayChanX)
+--               -> Note.UUID
+--               -> m (Either PayChanError (Pay.RecvPayChanX, StoredNote))

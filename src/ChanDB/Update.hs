@@ -18,7 +18,6 @@ import           DB.Model.Convert
 import           Control.Exception          (throw)
 import           Data.Maybe                 (fromMaybe)
 
-import Debug.Trace
 
 
 data UpdateErr =
@@ -38,7 +37,8 @@ txGetChanState pid tx sendPK = do
     return $ maybe (Left $ ChannelNotFound) Right resM
 
 txGetLastNote :: ( MonadCatch m
-                 , MonadGoogle '[AuthDatastore] m )
+                 , MonadGoogle '[AuthDatastore] m
+                 , HasScope    '[AuthDatastore] ProjectsRunQuery)
               => ProjectId
               -> TxId
               -> SendPubKey
@@ -89,7 +89,7 @@ withDBStateNote :: ( -- MonadIO m
 withDBStateNote pid sendPK f = do
     (eitherRes,_) <- withTx pid $ \tx -> do
         resE  <- txGetChanState pid tx sendPK
-        noteM <- return Nothing -- txGetLastNote pid tx sendPK
+        noteM <- txGetLastNote pid tx sendPK >> return Nothing
         -- Apply user function
         let applyF chan = fmapL PayError <$> f chan noteM
         applyResult <- either (return . Left) applyF resE

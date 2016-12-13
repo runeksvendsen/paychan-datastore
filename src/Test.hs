@@ -17,7 +17,7 @@ import           Test.QuickCheck            (Gen, arbitrary, sample', vectorOf, 
 import qualified Network.HTTP.Conduit as HTTP
 import           Network.Google as Google
 import qualified Control.Concurrent.Async as Async
-
+import qualified Control.Monad.Logger as Log
 
 
 projectId :: ProjectId
@@ -90,9 +90,13 @@ doPayment pid key payment =
             Right (a,s) -> mkNewNote (a,s) (maybe Note.zeroUUID Note.getID noteM)
             Left e -> error ("recvPayment error :( " ++ show e) >> return (Left e)
   where
+--     mkNewNote :: ( MonadGoogle '[AuthDatastore] m, Log.MonadLogger m )
+--               => (Pay.BitcoinAmount, Pay.RecvPayChanX)
+--               -> Note.UUID
+--               -> m (Either PayChanError (Pay.RecvPayChanX, StoredNote))
     mkNewNote (a,s) prevUUID = do
+--           Log.logDebugN (cs $ show prevUUID)
           newNote <- liftIO $ head <$> sample' (Note.arbNoteOfValue a)
           let newStoredNote = Note.mkStoredNote newNote prevUUID (Pay.channelValueLeft s)
           return $ Right (s,show newStoredNote `trace` newStoredNote)
-
 

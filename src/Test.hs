@@ -25,10 +25,10 @@ namespaceId :: NamespaceId
 namespaceId = NamespaceId "cloudstore-test" "clearing"
 
 payCount :: Word
-payCount = 100
+payCount = 50
 
 threadCount :: Word
-threadCount = 1
+threadCount = 100
 
 main :: IO ()
 main = do
@@ -39,9 +39,9 @@ main = do
     tstDataLst <- M.replicateM numThreads $ genTestData count
     -- Go!
     putStrLn . unlines $ [ ""
-                         , "Using project: " ++ cs (show ns)
-                         , "Thread count : " ++ show threadCount
-                         , "Payment count: " ++ show count ++ " (per thread)" ]
+                         , "Partition ID: " ++ cs (show ns)
+                         , "Thread count: " ++ show threadCount
+                         , "Pay    count: " ++ show count ++ " (per thread)" ]
     numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->
         runPaymentTest ns storeEnv tstData
     putStrLn $ "\n\nDone! Executed " ++ show (sum numPayLst) ++ " payments."

@@ -18,4 +18,4 @@ toPartitionId NamespaceId{..} = DS.partitionId &
 
 instance Show NamespaceId where
     show (NamespaceId p n) =
-        printf "Partition ID: project:\"%s\"/namespace:\"%s\"" p n
+        printf "project:\"%s\"/namespace:\"%s\"" p n

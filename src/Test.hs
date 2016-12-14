@@ -4,7 +4,7 @@ module Test where
 
 import           Util
 import qualified ChanDB as DB
-import           DB.Types
+import           ChanDB.Types
 import           DB.Util.Error
 import qualified Data.Bitcoin.PaymentChannel.Test as Pay
 import qualified PromissoryNote.Test as Note
@@ -21,11 +21,8 @@ import qualified Control.Concurrent.Async as Async
 import qualified Control.Monad.Logger as Log
 
 
-projectId :: ProjectId
-projectId = "cloudstore-test"
-
 namespaceId :: NamespaceId
-namespaceId = NamespaceId projectId "clearing"
+namespaceId = NamespaceId "cloudstore-test" "clearing"
 
 payCount :: Word
 payCount = 100
@@ -41,7 +38,8 @@ main = do
     storeEnv   <- defaultAppDatastoreEnv
     tstDataLst <- M.replicateM numThreads $ genTestData count
     -- Go!
-    putStrLn . unlines $ [ "Using project: " ++ cs (show ns)
+    putStrLn . unlines $ [ ""
+                         , "Using project: " ++ cs (show ns)
                          , "Thread count : " ++ show threadCount
                          , "Payment count: " ++ show count ++ " (per thread)" ]
     numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->

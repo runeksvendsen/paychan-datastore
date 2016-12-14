@@ -37,7 +37,6 @@ library
                      , lens
                      , aeson, vector, scientific
                      , cereal
-                     , bitcoin-payment-channel, promissory-note-types
                      , QuickCheck
                      , string-conversions
                      , time
@@ -53,36 +52,35 @@ library
                      , tagged
                      , monad-logger
 
---test-suite library-test
---  default-language: Haskell2010
---  default-extensions: OverloadedStrings, MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, FunctionalDependencies
---  type: exitcode-stdio-1.0
---  hs-source-dirs: src
---  main-is: Test/Main.hs
---  other-modules:
---  -- Test.ArbitraryJSON, DB.Types, DB.Model.Convert.Properties, DB.Model.Value.Native, DB.Creation
---  ghc-options: -main-is Test.Main
---  build-depends:
---      base
---    , paychan-datastore
---    , gogol-datastore
---    , aeson
---    , HUnit >= 1.3
---    , lens
---    , QuickCheck >= 2.8.2
---    , test-framework, test-framework-quickcheck2
---    , quickcheck-text
---    , scientific
---    , text
---    , bytestring
---    , vector
---    , transformers
---    , unordered-containers
---    , bitcoin-payment-channel
---    , string-conversions
---    , errors
---    , exceptions
---    , tagged
+test-suite conversion-test
+  default-language: Haskell2010
+  default-extensions: OverloadedStrings, MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, FunctionalDependencies
+  type: exitcode-stdio-1.0
+  hs-source-dirs: src
+  main-is: Test/Main.hs
+  other-modules:
+  -- Test.ArbitraryJSON, DB.Types, DB.Model.Convert.Properties, DB.Model.Value.Native, DB.Creation
+  ghc-options: -main-is Test.Main
+  build-depends:
+      base
+    , paychan-datastore
+    , gogol-datastore
+    , aeson
+    , HUnit >= 1.3
+    , lens
+    , QuickCheck >= 2.8.2
+    , test-framework, test-framework-quickcheck2
+    , quickcheck-text
+    , scientific
+    , text
+    , bytestring
+    , vector
+    , transformers
+    , unordered-containers
+    , string-conversions
+    , errors
+    , exceptions
+    , tagged
 
 
 test-suite storage-test
@@ -121,4 +119,5 @@ test-suite storage-test
                        , tagged
                        , monad-logger
 
-  other-modules:
+  other-modules:      ChanDB
+                      ChanDB.Types

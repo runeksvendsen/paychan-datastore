@@ -5,9 +5,9 @@ module DB.Model.Types.Identifier where
 import           Types
 -- import           Util
 
-import           PromissoryNote                   (PromissoryNote, UUID)
-import qualified PromissoryNote                 as Note
-import qualified Data.Bitcoin.PaymentChannel    as Pay
+-- import           PromissoryNote                   (PromissoryNote, UUID)
+-- import qualified PromissoryNote                 as Note
+-- import qualified Data.Bitcoin.PaymentChannel    as Pay
 import qualified Data.ByteString.Base16         as B16
 import qualified Data.Serialize                 as Bin
 import           Data.String.Conversions          (cs)
@@ -43,21 +43,6 @@ instance Identifier Void where
 
 instance Identifier (Either Int64 Text) where
     objectId = id
-
-instance Identifier SendPubKey
-    where objectId = Right . encodeHex
-
-instance Identifier UUID
-    where objectId = Right . encodeHex
-
-instance Identifier RecvPayChan
-    where objectId = objectId . Pay.getSenderPubKey
-
-instance Identifier PromissoryNote
-    where objectId = objectId . Note.getID
-
-instance Identifier StoredNote
-    where objectId = objectId . Note.getID
 
 encodeHex :: Bin.Serialize a => a -> Text
 encodeHex = cs . B16.encode . Bin.encode

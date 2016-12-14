@@ -12,10 +12,8 @@ where
 import DB.Model.Types.Identifier
 import DB.Model.Convert.Properties
 
-import           Types
-import           PromissoryNote                   (PromissoryNote, StoredNote, UUID)
+-- import           Types
 import qualified Data.Aeson                     as JSON
-import qualified Network.Google.Datastore       as DS
 import           Data.Void                        (Void)
 import qualified Data.HashMap.Strict    as Map
 
@@ -24,22 +22,9 @@ class (HasProperties a, Identifier i) => HasIdentifier a i | a -> i where
     getIdentifier :: i -> Ident a
     getIdentifier k = Ident $ objectId k :: Ident a
 
-instance HasIdentifier RecvPayChan SendPubKey
-instance HasIdentifier PromissoryNote UUID
-
-
 class (HasProperties a, Identifier a) => IsEntity a
-instance IsEntity RecvPayChan
-instance IsEntity PromissoryNote
-instance IsEntity StoredNote
-instance IsEntity Void
-
 
 class (IsEntity a, IsEntity anc) => HasAncestor a anc
-
-instance HasAncestor RecvPayChan Void
-instance HasAncestor PromissoryNote RecvPayChan
-instance HasAncestor StoredNote RecvPayChan
 
 
 class (JSON.FromJSON a) => HasProperties a where
@@ -52,16 +37,4 @@ instance HasProperties Void
 instance JSON.FromJSON Void where
     parseJSON = mempty
 
-instance HasProperties RecvPayChan
-    where properties = (\(JSON.Object o) -> o) . JSON.toJSON
-          excludeKeys _ = ["pcsPaymentSignature"]
-
-instance HasProperties PromissoryNote
-    where properties = (\(JSON.Object o) -> o) . JSON.toJSON
-          excludeKeys _ = ["server_sig"]
-
-instance HasProperties StoredNote
-    where properties = (\(JSON.Object o) -> o) . JSON.toJSON
-          excludeKeys _ = ["server_sig"]
-
-
+instance IsEntity Void

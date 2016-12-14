@@ -2,6 +2,8 @@
 {-# LANGUAGE DeriveAnyClass, GADTs, FlexibleContexts, DataKinds, ScopedTypeVariables#-}
 module ChanDB.Creation where
 
+import ChanDB.Orphans ()
+import ChanDB.Types
 import DB.Types
 import DB.Tx.Safe
 import DB.Util.Error

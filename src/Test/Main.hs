@@ -13,14 +13,12 @@ import qualified Data.Aeson as JSON
 
 
 main :: IO ()
-main = -- quickCheck $ \jsonVal -> show (jsonVal :: JSON.Value) `trace` True -- (jsonFromDS . jsonToDSTrace $ jsonVal) == jsonVal
-    defaultMain tests
+main = defaultMain tests
 
 tests :: [Test]
 tests =
     [ testGroup "Conversion"
         [ testProperty "Properties" $ propertiesConvert
-        , testProperty "Properties" $ propertiesConvert
         ]
     ]
 

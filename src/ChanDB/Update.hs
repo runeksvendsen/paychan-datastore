@@ -8,7 +8,9 @@ module ChanDB.Update
 )
 where
 
+import           ChanDB.Orphans ()
 import           Util
+import           ChanDB.Types
 import           DB.Types
 import           PromissoryNote.StoredNote  (setMostRecentNote)
 import           DB.Tx.Safe
@@ -106,43 +108,4 @@ withDBStateNote ns sendPK f = do
         Right (state,_) -> Right state
         Left e -> Left e
 
-
-
-traceCommit :: forall a. Show a => a -> a
-traceCommit c = show c `trace` c
-
--- |Check entity version.
-checkCommResponse :: EntityVersion -> CommitResponse -> UpdateResult
-checkCommResponse prevVer commResp =
-    case commResp ^. crMutationResults of
-        [r]       -> if getMRVersion r > prevVer then Updated else NotUpdated
-        []        -> NotUpdated
-        n@(_:_:_) -> throw . InternalError $
-            "DB BUG? More than one item was updated by 'txCommitUpdate': " ++ show n
-  where
-    getMRVersion r = fromMaybe
-        (throw . InternalError $ "MutationResult: empty version field")
-        (r ^. mrVersion)
-
-
---
--- withTxLookup :: ( MonadCatch m
---                , MonadGoogle '[AuthDatastore] m
---                ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
---             => ProjectId
---             -> SendPubKey
---             -> (ProjectId -> TxId -> SendPubKey -> m (Maybe a))
---             -> (a -> Maybe CommitRequest)
---             -> m (Either UpdateErr RecvPayChan)
--- withTxLookup ns sendPK lookupFunc commitFunc = do
---     eitherRes <- withTx ns $ \tx -> do
---         lookupResM <- lookupFunc ns tx sendPK
---         case lookupResM of
---             Nothing -> return $ Nothing
---             Just a  -> return (a, commitFunc a)
---
---
---     return $ case eitherRes of
---             Right (state,_) -> Right state
---             Left e -> Left e
 

@@ -4,7 +4,6 @@ module DB.Model.Convert.Request.Query where
 import DB.Model.Convert.Request.Lookup (parseEntityResult)
 import DB.Types
 import DB.Util.Error
-import DB.Model.Types.Entity
 import DB.Model.Convert.Entity
 import Util
 import Text.Printf
@@ -14,13 +13,16 @@ import qualified Network.Google.Datastore as DS
 
 mkQueryReq :: forall a anc.
               HasAncestor a anc
-           => Maybe (Ident anc)
+           => NamespaceId
+           -> Maybe (Ident anc)
            -> Text
            -> Tagged a DS.RunQueryRequest
-mkQueryReq ancM query = Tagged $
-    DS.runQueryRequest & rqrGqlQuery ?~
-    (DS.gqlQuery & DS.gqQueryString ?~ completeQueryStr &
-         gqAllowLiterals ?~ True)
+mkQueryReq nsId ancM query = Tagged $
+    DS.runQueryRequest
+        & rqrPartitionId ?~ toPartitionId nsId
+        & rqrGqlQuery ?~
+            (DS.gqlQuery & DS.gqQueryString ?~ completeQueryStr &
+            gqAllowLiterals ?~ True)
         where completeQueryStr = query <> ancestorQueryStr
               ancestorQueryStr = cs $ maybe "" mkAncestorStr ancM
               mkAncestorStr :: Ident anc -> String

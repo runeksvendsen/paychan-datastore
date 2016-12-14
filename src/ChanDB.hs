@@ -10,5 +10,5 @@ import DB.Types
 
 import ChanDB.Creation      (insertChan, removeChan)
 import ChanDB.Update    as Update
-
+import           PromissoryNote                   (PromissoryNote, StoredNote, UUID)
 

@@ -22,5 +22,5 @@ txAncestorQuery nsId tx anc query =
         where
             reqRes :: m (Tagged a RunQueryResponse)
             reqRes = Tagged <$> Google.send (projectsRunQuery reqWithTx (nsProjectId nsId))
-            reqWithTx = unTagged (mkQueryReq (Just anc) query :: Tagged a RunQueryRequest) &
+            reqWithTx = unTagged (mkQueryReq nsId (Just anc) query :: Tagged a RunQueryRequest) &
                 rqrReadOptions ?~ (readOptions & roTransaction ?~ tx)

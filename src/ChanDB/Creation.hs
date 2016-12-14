@@ -10,31 +10,27 @@ import DB.Model.Convert
 
 insertChan :: ( MonadGoogle '[AuthDatastore] m
               , HasScope '[AuthDatastore] ProjectsBeginTransaction )
-           => ProjectId
+           => NamespaceId
            -> RecvPayChan
            -> m (Tagged RecvPayChan CommitResponse)
-insertChan projectId chan =
-    runReqWithTx projectId (mkInsert root chan)
---     where insertRequest = commitRequest
---             & crMutations .~
---                 [ mutation & mInsert ?~ State.mkEntity projectId chan
---                 , mutation & mInsert ?~ Index.mkEntity  projectId chan ]
+insertChan nsId chan =
+    runReqWithTx nsId (mkInsert nsId root chan)
 
 removeChan :: ( MonadGoogle '[AuthDatastore] m
               ,    HasScope '[AuthDatastore] ProjectsBeginTransaction
               )
-           => ProjectId
+           => NamespaceId
            -> SendPubKey
            -> m (Tagged RecvPayChan CommitResponse)
-removeChan projectId key =
-    runReqWithTx projectId $ mkDelete root (getIdentifier key)
+removeChan nsId key =
+    runReqWithTx nsId $ mkDelete nsId root (getIdentifier key)
 
 runReqWithTx :: forall a m.
              ( MonadGoogle '[AuthDatastore] m
              , HasScope '[AuthDatastore] ProjectsBeginTransaction )
-             => ProjectId -> Tagged a CommitRequest -> m (Tagged a CommitResponse)
-runReqWithTx pid commitReq =
-    withTx pid ( const $ return ((), Just (unTagged commitReq)) ) >>=
+             => NamespaceId -> Tagged a CommitRequest -> m (Tagged a CommitResponse)
+runReqWithTx ns commitReq =
+    withTx ns ( const $ return ((), Just (unTagged commitReq)) ) >>=
         \(_,responseM) -> maybe
            (internalErrorM "runReqWithTx: 'withTx' did not return CommitResponse")
            return

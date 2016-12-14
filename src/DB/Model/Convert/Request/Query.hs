@@ -17,10 +17,11 @@ mkQueryReq :: forall a anc.
            => Maybe (Ident anc)
            -> Text
            -> Tagged a DS.RunQueryRequest
-mkQueryReq ancM query = Tagged $ DS.runQueryRequest & rqrGqlQuery ?~
-    (DS.gqlQuery & DS.gqQueryString ?~ (cs completeQuery `trace` completeQuery) &
+mkQueryReq ancM query = Tagged $
+    DS.runQueryRequest & rqrGqlQuery ?~
+    (DS.gqlQuery & DS.gqQueryString ?~ completeQueryStr &
          gqAllowLiterals ?~ True)
-        where completeQuery = query <> ancestorQueryStr
+        where completeQueryStr = query <> ancestorQueryStr
               ancestorQueryStr = cs $ maybe "" mkAncestorStr ancM
               mkAncestorStr :: Ident anc -> String
               mkAncestorStr anc = printf " AND __key__ HAS ANCESTOR %s" (gqlKeyString anc)

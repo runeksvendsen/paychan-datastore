@@ -15,10 +15,6 @@ import           Data.Typeable
 import           Data.Void                        (Void)
 
 
-type Root = Ident Void
-root :: Root
-root = Ident $ Left 0
-
 data Ident a = Ident
     { iId       :: Either Int64 Text
     } deriving (Eq, Typeable)
@@ -36,15 +32,17 @@ getIdent a = Ident (objectId a)
 castIdent :: Ident a -> Ident b
 castIdent (Ident i) = Ident i
 
+
+type Root = Ident Void
+root :: Root
+root = Ident $ Left 0
+
 -- | Root entities have an ancestor 'Identifier' of @Ident Void@
 instance Identifier Void where
     objectId _ = Left 0
 
 instance Identifier (Either Int64 Text) where
     objectId = id
-
--- instance Typeable a => Identifier (Ident a) where
---     objectId (Ident iid) = iid
 
 instance Identifier SendPubKey
     where objectId = Right . encodeHex

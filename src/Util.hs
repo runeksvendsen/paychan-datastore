@@ -1,6 +1,8 @@
+{-# LANGUAGE RecordWildCards #-}
 module Util
 (
-  module Control.Lens
+  module Types
+, module Control.Lens
 , Except.throw
 , fromMaybe, isJust, isNothing, fromJust
 , lefts, rights
@@ -13,6 +15,7 @@ module Util
 )
 where
 
+import           Types
 import           Control.Monad                  ((<=<), (>=>))
 import           Control.Monad.IO.Class         (liftIO)
 import           Data.Monoid                    ((<>), mempty)
@@ -26,8 +29,9 @@ import           Data.String.Conversions        (cs)
 import           Data.EitherR                   (fmapL)
 import           Data.Tagged (Tagged(..))
 
-
 import Debug.Trace (trace)
+
+
 
 (</>) :: Monoid a
       => Tagged b a

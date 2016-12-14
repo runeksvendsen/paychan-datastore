@@ -1,11 +1,12 @@
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DataKinds, RecordWildCards #-}
 module Types
 (
-  module Types
--- , module Network.Google
--- , module Network.Google.Datastore
+-- *New exports
+  Note, RecvPayChan, ProjectId
+, AuthCloudPlatform, AuthDatastore
+-- *Re-exports
 , Pay.SendPubKey
-, PromissoryNote, StoredNote(..), UUID
+, PromissoryNote, StoredNote, UUID
 , Pay.PayChanError
 , Pay.BitcoinAmount
 , Catch.MonadCatch
@@ -20,7 +21,7 @@ where
 
 
 import qualified Data.Bitcoin.PaymentChannel.Test as Pay
-import           PromissoryNote                   (PromissoryNote, StoredNote(..), UUID) -- , setMostRecentNote)
+import           PromissoryNote                   (PromissoryNote, StoredNote, UUID) -- , setMostRecentNote)
 
 import           Data.Tagged (Tagged(..))
 import           Control.Monad.IO.Class     (MonadIO)
@@ -34,6 +35,7 @@ import qualified Data.Text                      as T
 type Note = PromissoryNote
 type RecvPayChan = Pay.RecvPayChanX
 type ProjectId = T.Text
+
 
 type AuthCloudPlatform = "https://www.googleapis.com/auth/cloud-platform"
 type AuthDatastore = "https://www.googleapis.com/auth/datastore"

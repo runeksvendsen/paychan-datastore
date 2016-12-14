@@ -17,9 +17,9 @@ import Network.Google as Google
 -- |Rollback. Finish the transaction without doing anything.
 txRollback :: ( MonadGoogle '[AuthDatastore] m
               ,    HasScope '[AuthDatastore] ProjectsRollback )
-           => ProjectId -> TxId -> m RollbackResponse
-txRollback projectId tx =
-    Google.send (projectsRollback rollbackReq projectId) >>=
+           => NamespaceId -> TxId -> m RollbackResponse
+txRollback nsId tx =
+    Google.send (projectsRollback rollbackReq (nsProjectId nsId)) >>=
         \res -> liftIO (putStrLn "INFO: Transaction rolled back.") >> return res
   where
     rollbackReq = rollbackRequest & rrTransaction ?~ tx
@@ -28,12 +28,12 @@ txRollback projectId tx =
 -- |Commit. Finish the transaction with an update.
 txCommit :: ( MonadGoogle '[AuthDatastore] m
             ,    HasScope '[AuthDatastore] ProjectsCommit )
-         => ProjectId
+         => NamespaceId
          -> TxId
          -> CommitRequest
          -> m CommitResponse
-txCommit pid tx commReq =
-    Google.send (projectsCommit txCommReq pid)
+txCommit ns tx commReq =
+    Google.send (projectsCommit txCommReq (nsProjectId ns))
   where
     txCommReq = commReq & crMode ?~ Transactional & crTransaction ?~ tx
 
@@ -42,10 +42,10 @@ txCommit pid tx commReq =
 --   by doing either a commit or a rollback.
 txBeginUnsafe :: ( MonadGoogle '[AuthDatastore] m
                  ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
-              => ProjectId
+              => NamespaceId
               -> m TxId
-txBeginUnsafe projectId = do
-    txBeginRes <- Google.send (projectsBeginTransaction beginTransactionRequest projectId)
+txBeginUnsafe nsId = do
+    txBeginRes <- Google.send (projectsBeginTransaction beginTransactionRequest (nsProjectId nsId))
     case txBeginRes ^. btrTransaction of
             Just tid -> return tid
             Nothing  -> Util.internalError $

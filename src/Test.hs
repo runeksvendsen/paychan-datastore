@@ -24,6 +24,9 @@ import qualified Control.Monad.Logger as Log
 projectId :: ProjectId
 projectId = "cloudstore-test"
 
+namespaceId :: NamespaceId
+namespaceId = NamespaceId projectId "clearing"
+
 payCount :: Word
 payCount = 100
 
@@ -33,32 +36,32 @@ threadCount = 1
 main :: IO ()
 main = do
     let count = payCount
-    let pid = projectId
+    let ns = namespaceId
     let numThreads = fromIntegral threadCount
     storeEnv   <- defaultAppDatastoreEnv
     tstDataLst <- M.replicateM numThreads $ genTestData count
     -- Go!
-    putStrLn . unlines $ [ "Using project: " ++ cs pid
+    putStrLn . unlines $ [ "Using project: " ++ cs (show ns)
                          , "Thread count : " ++ show threadCount
                          , "Payment count: " ++ show count ++ " (per thread)" ]
     numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->
-        runPaymentTest pid storeEnv tstData
+        runPaymentTest ns storeEnv tstData
     putStrLn $ "\n\nDone! Executed " ++ show (sum numPayLst) ++ " payments."
 
-runPaymentTest :: ProjectId -> Env '[AuthDatastore] -> Pay.ChannelPairResult -> IO Int
-runPaymentTest pid env tstData = runResourceT . runGoogle env $ testDB pid tstData
+runPaymentTest :: NamespaceId -> Env '[AuthDatastore] -> Pay.ChannelPairResult -> IO Int
+runPaymentTest ns env tstData = runResourceT . runGoogle env $ testDB ns tstData
 
 testDB :: ( MonadCatch m
           , MonadGoogle '[AuthDatastore] m )
-       => ProjectId -> Pay.ChannelPairResult -> m Int
-testDB pid Pay.ChannelPairResult{..} = do
+       => NamespaceId -> Pay.ChannelPairResult -> m Int
+testDB ns Pay.ChannelPairResult{..} = do
     let sampleRecvChan = Pay.recvChan resInitPair
         sampleKey = Pay.getSenderPubKey sampleRecvChan
         paymentList = reverse $ init resPayList
-    _ <- DB.insertChan pid sampleRecvChan
+    _ <- DB.insertChan ns sampleRecvChan
     -- Safe lookup + update/rollback
-    res <- M.forM paymentList (doPayment pid sampleKey)
---     _ <- DB.removeChan pid sampleKey
+    res <- M.forM paymentList (doPayment ns sampleKey)
+--     _ <- DB.removeChan ns sampleKey
     return $ length res
 
 
@@ -80,30 +83,34 @@ genTestData numPayments = do
     return chanPair
 
 doPayment :: ( MonadGoogle '[AuthDatastore] m )
-          => ProjectId
+          => NamespaceId
           -> Pay.SendPubKey
           -> Pay.FullPayment
           -> m (Either DB.UpdateErr RecvPayChan)
-doPayment pid key payment =
-    DB.withDBStateNote pid key $ \recvChan noteM -> do
+doPayment ns key payment =
+    DB.withDBStateNote ns key $ \recvChan noteM -> do
         now <- liftIO Clock.getCurrentTime
         case Pay.recvPayment now recvChan payment of
             Right (a,s) -> mkNewNote (a,s) now noteM
             Left e -> error ("recvPayment error :( " ++ show e) >> return (Left e)
   where
-    mkNewNote (a,s) now prevNoteM = do
-          newNote <- liftIO $ head <$> sample' (Note.arbNoteOfValue a now)
-          let noteFromPrev prevPN = either internalError id $
-                Note.mkCheckStoredNote newNote prevPN (Pay.fpPayment payment)
-              newStoredNote = maybe
-                ( Note.mkGenesisNote newNote (Pay.fpPayment payment) )
-                noteFromPrev
-                prevNoteM
-          return $ Right (s,show newStoredNote `trace` newStoredNote)
+    mkNewNote (val,s) now prevNoteM = do
+        newNote <- createNewNote val now payment prevNoteM
+        return $ Right (s, newNote)
 
 
---     mkNewNote :: ( MonadGoogle '[AuthDatastore] m, Log.MonadLogger m )
---               => (Pay.BitcoinAmount, Pay.RecvPayChanX)
---               -> Note.UUID
---               -> m (Either PayChanError (Pay.RecvPayChanX, StoredNote))
+createNewNote :: MonadIO m
+              => Note.Amount
+              -> Clock.UTCTime
+              -> Pay.FullPayment
+              -> Maybe StoredNote
+              -> m StoredNote
+createNewNote val now payment prevNoteM = do
+    newNote <- liftIO $ head <$> sample' (Note.arbNoteOfValue val now)
+    let noteFromPrev prevPN = either internalError id $
+            Note.mkCheckStoredNote newNote prevPN (Pay.fpPayment payment)
+    return $ maybe
+        ( Note.mkGenesisNote newNote (Pay.fpPayment payment) )
+        noteFromPrev
+        prevNoteM
 

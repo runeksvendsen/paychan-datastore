@@ -18,14 +18,14 @@ import qualified Control.Monad.Catch as      Catch
 withTx :: ( Catch.MonadCatch m
           , MonadGoogle '[AuthDatastore] m
           ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
-       => ProjectId
+       => NamespaceId
        -> (TxId -> m (a, Maybe CommitRequest))
        -> m (a, Maybe CommitResponse)
-withTx pid f =
-    txBeginUnsafe pid >>= \tx -> do
-        let rollback = txRollback pid tx
+withTx ns f =
+    txBeginUnsafe ns >>= \tx -> do
+        let rollback = txRollback ns tx
         (a,maybeCommReq) <- f tx `Catch.onException` rollback
         case maybeCommReq of
             Nothing  -> rollback >> return (a,Nothing)
-            Just req -> txCommit pid tx req >>= \resp -> return (a, Just resp)
+            Just req -> txCommit ns tx req >>= \resp -> return (a, Just resp)
 

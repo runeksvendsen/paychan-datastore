@@ -12,13 +12,10 @@ import           DB.Request.Util
 import Util
 import DB.Types
 import qualified DB.Util.Error as Util
-import Network.Google as Google
 
 
 -- |Rollback. Finish the transaction without doing anything.
-txRollback :: ( DatastoreM m
-              , HasScope    '[AuthDatastore] ProjectsRollback )
-           => TxId -> m RollbackResponse
+txRollback :: TxId -> Datastore RollbackResponse
 txRollback tx =
     sendReq (projectsRollback rollbackReq) >>=
         \res -> liftIO (putStrLn "INFO: Transaction rolled back.") >> return res
@@ -27,10 +24,9 @@ txRollback tx =
 
 
 -- |Commit. Finish the transaction with an update.
-txCommit :: DatastoreM m
-         => TxId
+txCommit :: TxId
          -> CommitRequest
-         -> m CommitResponse
+         -> Datastore CommitResponse
 txCommit tx commReq =
     sendReq (projectsCommit txCommReq)
   where
@@ -39,8 +35,7 @@ txCommit tx commReq =
 
 -- |Begin transaction. The returned handle must be released safely after use,
 --   by doing either a commit or a rollback.
-txBeginUnsafe :: DatastoreM m
-              => m TxId
+txBeginUnsafe :: Datastore TxId
 txBeginUnsafe = do
     txBeginRes <- sendReq (projectsBeginTransaction beginTransactionRequest)
     case txBeginRes ^. btrTransaction of

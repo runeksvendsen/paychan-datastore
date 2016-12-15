@@ -83,6 +83,7 @@ test-suite conversion-test
     , errors
     , exceptions
     , tagged
+    , monad-control
 
 
 test-suite storage-test

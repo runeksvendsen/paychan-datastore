@@ -23,39 +23,29 @@ import           Data.Maybe                 (fromMaybe)
 
 
 
-txGetChanState :: ( MonadCatch m
-                 , DatastoreM m
-                 ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
-              => NamespaceId
-              -> TxId
-              -> SendPubKey
-              -> m (Either UpdateErr RecvPayChan)
+txGetChanState :: NamespaceId
+               -> TxId
+               -> SendPubKey
+               -> Datastore (Either UpdateErr RecvPayChan)
 txGetChanState ns tx sendPK = do
     partId <- mkPartitionId ns
     resM <- getFirstResult <$> txLookup (Just partId) tx root (getIdentifier sendPK)
     return $ maybe (Left $ ChannelNotFound) Right resM
 
-txGetLastNote :: ( MonadCatch m
-                 , DatastoreM m
-                 , HasScope    '[AuthDatastore] ProjectsRunQuery)
-              => NamespaceId
+txGetLastNote :: NamespaceId
               -> TxId
               -> SendPubKey
-              -> m (Maybe StoredNote)
+              -> Datastore (Maybe StoredNote)
 txGetLastNote ns tx k = do
     partId <- mkPartitionId ns
     let query = "SELECT * FROM StoredNote WHERE most_recent_note = TRUE"
         payChanId = castIdent $ getIdent k :: Ident RecvPayChan
     getFirstResult <$> txAncestorQuery (Just partId) tx payChanId query
 
-withDBState :: ( -- MonadIO m
-                 MonadCatch m
-               , DatastoreM m
-               ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
-            => NamespaceId
+withDBState :: NamespaceId
             -> SendPubKey
-            -> (RecvPayChan -> m (Either PayChanError RecvPayChan))
-            -> m (Either UpdateErr RecvPayChan)
+            -> (RecvPayChan -> Datastore (Either PayChanError RecvPayChan))
+            -> Datastore (Either UpdateErr RecvPayChan)
 withDBState ns sendPK f = do
     (eitherRes,_) <- withTx $ \tx -> do
         resE <- txGetChanState ns tx sendPK
@@ -71,14 +61,11 @@ withDBState ns sendPK f = do
         Right state -> Right state
         Left e -> Left e
 
-withDBStateNote :: (
-                     MonadCatch m
-                   , DatastoreM m
-                   ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
-            => NamespaceId
+withDBStateNote ::
+               NamespaceId
             -> SendPubKey
-            -> (RecvPayChan -> Maybe StoredNote -> m (Either PayChanError (RecvPayChan,StoredNote)))
-            -> m (Either UpdateErr RecvPayChan)
+            -> (RecvPayChan -> Maybe StoredNote -> Datastore (Either PayChanError (RecvPayChan,StoredNote)))
+            -> Datastore (Either UpdateErr RecvPayChan)
 withDBStateNote ns sendPK f = do
     (eitherRes,_) <- withTx $ \tx -> do
         resE  <- txGetChanState ns tx sendPK

@@ -17,11 +17,9 @@ import           Control.Monad.Trans.Resource   as Res
 --  The handle will be safely released both if an exception
 --   occurs in "f", and if no 'CommitResponse' is returned by
 --   "f".
-withTx :: ( Catch.MonadCatch m
-          , DatastoreM m
-          )
-       => (TxId -> m (a, Maybe CommitRequest))
-       -> m (a, Maybe CommitResponse)
+withTx ::
+       (TxId -> Datastore (a, Maybe CommitRequest))
+       -> Datastore (a, Maybe CommitResponse)
 withTx f =
     txBeginUnsafe >>= \tx -> do
         let rollback = txRollback tx

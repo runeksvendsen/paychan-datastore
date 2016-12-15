@@ -1,7 +1,11 @@
 -- {-# LANGUAGE DeriveAnyClass, GADTs, FlexibleContexts, DataKinds, ScopedTypeVariables #-}
-module ChanDB.Interface where
+module ChanDB.Interface
+(
+  ChanDB(..)
+, module ChanDB.Types
+)
+where
 
-import DB.Run
 import ChanDB.Types
 import ChanDB.Creation
 import ChanDB.Update
@@ -38,6 +42,10 @@ class Monad m => ChanDB m where
     delete           :: SendPubKey
                      -> m ()
 
+    runDB            :: DatastoreConf
+                     -> m a
+                     -> IO a
+
 
 -- Implementation
 
@@ -48,27 +56,22 @@ paychanNS :: NamespaceId
 paychanNS = "paychan"
 
 
--- instance ChanDB Datastore where
---     create rpc = do
---         env <- getEnv
---         runGoogle env $ do
---             _ <- insertChan paychanNS  rpc
---             _ <- insertChan clearingNS rpc
---             return ()
---
---     paychanWithState k f = do
---            env <- getEnv
---            runGoogle env $ withDBState paychanNS k f
---
---     noteWithState k f = do
---            env <- getEnv
---            runGoogle env $ withDBStateNote paychanNS k f
---
---
---     delete k = do
---         env <- getEnv
---         runGoogle env $ do
---             _ <- removeChan paychanNS k
---             _ <- removeChan clearingNS k
---             return ()
+instance ChanDB Datastore where
+    create rpc = do
+        _ <- insertChan paychanNS  rpc
+        _ <- insertChan clearingNS rpc
+        return ()
 
+    paychanWithState k f = withDBState paychanNS k f
+
+    noteWithState k f = withDBStateNote paychanNS k f
+
+    delete k = do
+        _ <- removeChan paychanNS k
+        _ <- removeChan clearingNS k
+        return ()
+
+    runDB = runDatastore
+    selectChannels  = error "STUB"
+    settleBegin     = error "STUB"
+    settleFin       = error "STUB"

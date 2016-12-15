@@ -7,14 +7,14 @@ import DB.Util.Error
 import Network.Google as Google
 
 
-sendReq :: (DatastoreM m, HasScope '[AuthDatastore] a, GoogleRequest a) => (ProjectId -> a) -> m (Rs a)
-sendReq mkReq = do
+sendReq' :: (DatastoreM m, HasScope '[AuthDatastore] a, GoogleRequest a) => (ProjectId -> a) -> m (Rs a)
+sendReq' mkReq = do
     pid <- getPid
     liftGoogle $ Google.send (mkReq pid)
 
 
-sendReq' :: (HasScope '[AuthDatastore] a, GoogleRequest a) => (ProjectId -> a) -> Datastore (Rs a)
-sendReq' mkReq = do
+sendReq :: (HasScope '[AuthDatastore] a, GoogleRequest a) => (ProjectId -> a) -> Datastore (Rs a)
+sendReq mkReq = do
     pid <- getPid
     liftGoogle $ Google.send (mkReq pid)
 

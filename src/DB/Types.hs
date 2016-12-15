@@ -32,9 +32,13 @@ import           Control.Monad.IO.Class           (MonadIO)
 import           Control.Applicative              (Alternative)
 
 
+runDatastore :: DatastoreConf -> Datastore a -> IO a
+runDatastore cfg d = Res.runResourceT $ liftResourceT $ R.runReaderT (unDS d) cfg
+
 class (Res.MonadResource m, MonadGoogle '[AuthDatastore] m) => DatastoreM m where
     getEnv          :: m (Env '[AuthDatastore])
     getPid          :: m ProjectId
+    liftDS          :: Datastore a -> m a
     -- | Create a 'PartitionId' using the project id in 'DatastoreConf'
     mkPartitionId   :: NamespaceId -> m PartitionId
     mkPartitionId nsId = do
@@ -47,6 +51,10 @@ class (Res.MonadResource m, MonadGoogle '[AuthDatastore] m) => DatastoreM m wher
 instance DatastoreM Datastore where
     getEnv = dcAuthEnv <$> R.ask
     getPid = dcProjId  <$> R.ask
+    liftDS d = do
+        cfg <- R.ask
+        liftResourceT $ R.runReaderT (unDS d) cfg
+
 
 newtype Datastore a = Datastore { unDS :: R.ReaderT DatastoreConf (Res.ResourceT IO) a }
     deriving

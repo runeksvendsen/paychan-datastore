@@ -11,26 +11,26 @@ import DB.Model.Convert
 
 
 
-insertChan :: DatastoreM m
-           => NamespaceId
+insertChan :: -- DatastoreM m
+              NamespaceId
            -> RecvPayChan
-           -> m (Tagged RecvPayChan CommitResponse)
+           -> Datastore (Tagged RecvPayChan CommitResponse)
 insertChan nsId chan = do
     partId <- mkPartitionId nsId
     runReqWithTx (mkInsert (Just partId) root chan)
 
-removeChan :: DatastoreM m
-           => NamespaceId
+removeChan :: -- DatastoreM m
+              NamespaceId
            -> SendPubKey
-           -> m (Tagged RecvPayChan CommitResponse)
+           -> Datastore (Tagged RecvPayChan CommitResponse)
 removeChan nsId key = do
     partId <- mkPartitionId nsId
     runReqWithTx $ mkDelete (Just partId) root (getIdentifier key)
 
 
-runReqWithTx :: forall a m.
-             ( DatastoreM m )
-             => Tagged a CommitRequest -> m (Tagged a CommitResponse)
+runReqWithTx :: -- forall a m.
+--              ( DatastoreM m )
+             Tagged a CommitRequest -> Datastore (Tagged a CommitResponse)
 runReqWithTx commitReq =
     withTx ( const $ return ((), Just (unTagged commitReq)) ) >>=
         \(_,responseM) -> maybe

@@ -13,19 +13,16 @@ import           DB.Model.Convert
 import           Util
 
 
-txLookup :: forall a anc m.
-            ( DatastoreM m
-            , HasScope    '[AuthDatastore] ProjectsLookup
-            , HasAncestor a anc)
+txLookup :: forall a anc.
+            HasAncestor a anc
            => Maybe PartitionId
            -> TxId
            -> Ident anc
            -> Ident a
-           -> m ( Either String [ ((a, Ident anc), EntityVersion) ] )
+           -> Datastore ( Either String [ ((a, Ident anc), EntityVersion) ] )
 txLookup ns tx anc a =
     parseLookupRes <$> reqRes
         where
-            reqRes :: m (Tagged a LookupResponse)
             reqRes = Tagged <$> sendReq (projectsLookup reqWithTx) -- (nsProjectId ns))
             reqWithTx = unTagged (mkLookup ns anc a :: Tagged a LookupRequest) &
                 lrReadOptions ?~ (readOptions & roTransaction ?~ tx)

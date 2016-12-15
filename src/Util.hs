@@ -13,6 +13,7 @@ module Util
 , (<>), mempty, (</>)
 , trace
 , void
+, Ctrl.liftBaseOp
 )
 where
 
@@ -20,6 +21,7 @@ import           Types
 import           Control.Monad                  ((<=<), (>=>), void)
 import           Control.Monad.IO.Class         (liftIO)
 import           Data.Monoid                    ((<>), mempty)
+import           Control.Monad.Trans.Control    as Ctrl
 
 import qualified Control.Exception as Except
 

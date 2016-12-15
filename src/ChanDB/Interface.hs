@@ -64,7 +64,7 @@ instance ChanDB Datastore where
 
     paychanWithState k f = withDBState paychanNS k f
 
-    noteWithState k f = withDBStateNote paychanNS k f
+    noteWithState k f = withDBStateNote clearingNS k f
 
     delete k = do
         _ <- removeChan paychanNS k

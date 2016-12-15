@@ -12,11 +12,12 @@ module Util
 , (<=<), (>=>)
 , (<>), mempty, (</>)
 , trace
+, void
 )
 where
 
 import           Types
-import           Control.Monad                  ((<=<), (>=>))
+import           Control.Monad                  ((<=<), (>=>), void)
 import           Control.Monad.IO.Class         (liftIO)
 import           Data.Monoid                    ((<>), mempty)
 

@@ -12,12 +12,12 @@ import qualified Network.Google.Datastore as DS
 
 mkLookup :: forall a anc.
             HasAncestor a anc
-         => NamespaceId
+         => Maybe PartitionId
          -> Ident anc
          -> Ident a
          -> Tagged a DS.LookupRequest
-mkLookup ns anc a = Tagged $ lookupRequest & lrKeys .~
-    [ unTagged (encodeKey ns anc a :: Tagged a DS.Key) ]
+mkLookup partM anc a = Tagged $ lookupRequest & lrKeys .~
+    [ unTagged (encodeKey partM anc a :: Tagged a DS.Key) ]
 
 -- mkLookupDescendants :: forall a anc.
 --             DeriveAncestor a anc

@@ -13,13 +13,13 @@ import qualified Network.Google.Datastore as DS
 
 mkQueryReq :: forall a anc.
               HasAncestor a anc
-           => NamespaceId
+           => Maybe PartitionId
            -> Maybe (Ident anc)
            -> Text
            -> Tagged a DS.RunQueryRequest
-mkQueryReq nsId ancM query = Tagged $
+mkQueryReq partM ancM query = Tagged $
     DS.runQueryRequest
-        & rqrPartitionId ?~ toPartitionId nsId
+        & rqrPartitionId .~ partM
         & rqrGqlQuery ?~
             (DS.gqlQuery & DS.gqQueryString ?~ completeQueryStr &
             gqAllowLiterals ?~ True)

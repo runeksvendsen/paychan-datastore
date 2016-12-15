@@ -1,33 +1,31 @@
-{-# OPTIONS_GHC -fno-warn-orphan-instances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module DB.Model.Convert.Request.Commit where
 
 import DB.Model.Types.Namespace
 import DB.Model.Types.Entity
 import DB.Model.Convert.Entity
-import Types
+import DB.Types
 import Util
 
 import qualified Network.Google.Datastore as DS
-import Network.Google.Datastore hiding (Entity, key)
 
 
 
-mkInsert :: forall a anc. HasAncestor a anc => NamespaceId -> Ident anc -> a -> Tagged a DS.CommitRequest
-mkInsert ns anc a = Tagged $ mutationReq
-    [ mutation & mInsert ?~ unTagged (encodeEntity ns anc a :: Tagged a DS.Entity) ]
+mkInsert :: forall a anc. HasAncestor a anc => Maybe PartitionId -> Ident anc -> a -> Tagged a DS.CommitRequest
+mkInsert partM anc a = Tagged $ mutationReq
+    [ mutation & mInsert ?~ unTagged (encodeEntity partM anc a :: Tagged a DS.Entity) ]
 
-mkUpsert :: forall a anc. HasAncestor a anc => NamespaceId -> Ident anc -> a -> Tagged a DS.CommitRequest
-mkUpsert ns anc a = Tagged $ mutationReq
-    [ mutation & mUpsert ?~ unTagged (encodeEntity ns anc a :: Tagged a DS.Entity) ]
+mkUpsert :: forall a anc. HasAncestor a anc => Maybe PartitionId -> Ident anc -> a -> Tagged a DS.CommitRequest
+mkUpsert partM anc a = Tagged $ mutationReq
+    [ mutation & mUpsert ?~ unTagged (encodeEntity partM anc a :: Tagged a DS.Entity) ]
 
-mkUpdate :: forall a anc. HasAncestor a anc => NamespaceId -> Ident anc -> a -> Tagged a DS.CommitRequest
-mkUpdate ns anc a = Tagged $ mutationReq
-    [ mutation & mUpdate ?~ unTagged (encodeEntity ns anc a :: Tagged a DS.Entity) ]
+mkUpdate :: forall a anc. HasAncestor a anc => Maybe PartitionId -> Ident anc -> a -> Tagged a DS.CommitRequest
+mkUpdate partM anc a = Tagged $ mutationReq
+    [ mutation & mUpdate ?~ unTagged (encodeEntity partM anc a :: Tagged a DS.Entity) ]
 
-mkDelete :: forall a anc. HasAncestor a anc => NamespaceId -> Ident anc -> Ident a -> Tagged a DS.CommitRequest
-mkDelete ns anc a = Tagged $ mutationReq
-    [ mutation & mDelete ?~ unTagged (encodeKey ns anc a :: Tagged a DS.Key)]
+mkDelete :: forall a anc. HasAncestor a anc => Maybe PartitionId -> Ident anc -> Ident a -> Tagged a DS.CommitRequest
+mkDelete partM anc a = Tagged $ mutationReq
+    [ mutation & mDelete ?~ unTagged (encodeKey partM anc a :: Tagged a DS.Key)]
 
 
 

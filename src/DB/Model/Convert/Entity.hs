@@ -7,17 +7,16 @@ module DB.Model.Convert.Entity
 )
 where
 
-import DB.Model.Types.Namespace
 import DB.Model.Types.Entity
 import DB.Model.Convert.Identifier
 import Types
 import Util
 import qualified Data.HashMap.Strict        as Map
-import qualified Network.Google.Datastore   as DS
+import qualified Network.Google.Datastore.Types   as DS
 
 
-encodeKey :: forall a anc. HasAncestor a anc => NamespaceId -> Ident anc -> Ident a -> Tagged a DS.Key
-encodeKey ns anc a = Tagged $ unTagged bareKey & DS.kPartitionId ?~ toPartitionId ns
+encodeKey :: forall a anc. HasAncestor a anc => Maybe DS.PartitionId -> Ident anc -> Ident a -> Tagged a DS.Key
+encodeKey partIdM anc a = Tagged $ unTagged bareKey & DS.kPartitionId .~ partIdM
     where bareKey = identKey anc </> identKey a
 
 parseKey :: forall a anc. HasAncestor a anc => Tagged a DS.Key -> Either String (Ident anc, Ident a)
@@ -28,12 +27,12 @@ parseKey a = case unTagged a ^. DS.kPath of
 
 encodeEntity :: forall a anc.
                 HasAncestor a anc
-             => NamespaceId
+             => Maybe DS.PartitionId
              -> Ident anc
              -> a
              -> Tagged a DS.Entity
-encodeEntity ns anc a = Tagged $ DS.entity
-    & DS.eKey ?~ unTagged (encodeKey ns anc (getIdent a))
+encodeEntity partIdM anc a = Tagged $ DS.entity
+    & DS.eKey ?~ unTagged (encodeKey partIdM anc (getIdent a))
     & DS.eProperties ?~ DS.entityProperties props
         where props = jsonToDS (excludeKeys a) <$> properties a
 

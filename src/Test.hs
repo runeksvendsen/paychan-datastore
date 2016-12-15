@@ -5,24 +5,26 @@ module Test where
 import           Util
 import qualified ChanDB as DB
 import           ChanDB.Types
-import           DB.Util.Error
+
 import qualified Data.Bitcoin.PaymentChannel.Test as Pay
 import qualified PromissoryNote.Test as Note
 import qualified PromissoryNote as Note
 
 import qualified Control.Monad as M
 import qualified Data.Time.Clock as Clock
-import           System.IO                  (stderr, stdout, hFlush)
-import           Test.QuickCheck            (Gen, arbitrary, sample', vectorOf, choose, generate)
+import           System.IO                  (stderr)
+import           Test.QuickCheck            (Gen, sample', vectorOf, choose, generate)
 
 import qualified Network.HTTP.Conduit as HTTP
 import           Network.Google as Google
 import qualified Control.Concurrent.Async as Async
-import qualified Control.Monad.Logger as Log
 
 
-namespaceId :: NamespaceId
-namespaceId = NamespaceId "cloudstore-test" "clearing"
+projectId :: ProjectId
+projectId = "cloudstore-test"
+
+clearingNS :: NamespaceId
+clearingNS = "clearing"
 
 payCount :: Word
 payCount = 50
@@ -33,26 +35,28 @@ threadCount = 2
 main :: IO ()
 main = do
     let count = payCount
-    let ns = namespaceId
     let numThreads = fromIntegral threadCount
     storeEnv   <- defaultAppDatastoreEnv
+    let conf = DatastoreConf storeEnv projectId
+    let ns = clearingNS
     tstDataLst <- M.replicateM numThreads $ genTestData count
     -- Go!
     putStrLn . unlines $ [ ""
-                         , "Partition ID: " ++ cs (show ns)
+                         , "Project ID: " ++ cs projectId
                          , "Thread count: " ++ show threadCount
                          , "Pay    count: " ++ show count ++ " (per thread)" ]
     numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->
-        runPaymentTest ns storeEnv tstData
+        runPaymentTest conf ns tstData
     putStrLn $ "\n\nDone! Executed " ++ show (sum numPayLst) ++ " payments."
 
-runPaymentTest :: NamespaceId -> Env '[AuthDatastore] -> Pay.ChannelPairResult -> IO Int
-runPaymentTest ns env tstData = runResourceT . runGoogle env $ testDB ns tstData
 
-testDB :: ( MonadCatch m
-          , MonadGoogle '[AuthDatastore] m )
-       => NamespaceId -> Pay.ChannelPairResult -> m Int
-testDB ns Pay.ChannelPairResult{..} = do
+runPaymentTest :: DatastoreConf -> NamespaceId -> Pay.ChannelPairResult -> IO Int
+runPaymentTest cfg ns tstData = runResourceT $ DB.runDatastore cfg $ paymentTest ns tstData
+
+paymentTest :: ( MonadCatch m
+               , DatastoreM m )
+            => NamespaceId -> Pay.ChannelPairResult -> m Int
+paymentTest ns Pay.ChannelPairResult{..} = do
     let sampleRecvChan = Pay.recvChan resInitPair
         sampleKey = Pay.getSenderPubKey sampleRecvChan
         paymentList = reverse $ init resPayList
@@ -80,7 +84,7 @@ genTestData numPayments = do
     let (chanPair, _) = Pay.runChanPair arbPair (tail amountList)
     return chanPair
 
-doPayment :: ( MonadGoogle '[AuthDatastore] m )
+doPayment :: DatastoreM m
           => NamespaceId
           -> Pay.SendPubKey
           -> Pay.FullPayment
@@ -105,7 +109,7 @@ createNewNote :: MonadIO m
               -> m StoredNote
 createNewNote val now payment prevNoteM = do
     newNote <- liftIO $ head <$> sample' (Note.arbNoteOfValue val now)
-    let noteFromPrev prevPN = either internalError id $
+    let noteFromPrev prevPN = either DB.internalError id $
             Note.mkCheckStoredNote newNote prevPN (Pay.fpPayment payment)
     return $ maybe
         ( Note.mkGenesisNote newNote (Pay.fpPayment payment) )

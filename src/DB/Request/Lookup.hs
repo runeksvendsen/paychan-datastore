@@ -7,17 +7,17 @@ module DB.Request.Lookup
 )
 where
 
+import           DB.Request.Util
 import           DB.Types
 import           DB.Model.Convert
 import           Util
-import           Network.Google as Google
 
 
 txLookup :: forall a anc m.
-            ( MonadGoogle '[AuthDatastore] m
+            ( DatastoreM m
             , HasScope    '[AuthDatastore] ProjectsLookup
             , HasAncestor a anc)
-           => NamespaceId
+           => Maybe PartitionId
            -> TxId
            -> Ident anc
            -> Ident a
@@ -26,6 +26,6 @@ txLookup ns tx anc a =
     parseLookupRes <$> reqRes
         where
             reqRes :: m (Tagged a LookupResponse)
-            reqRes = Tagged <$> Google.send (projectsLookup reqWithTx (nsProjectId ns))
+            reqRes = Tagged <$> sendReq (projectsLookup reqWithTx) -- (nsProjectId ns))
             reqWithTx = unTagged (mkLookup ns anc a :: Tagged a LookupRequest) &
                 lrReadOptions ?~ (readOptions & roTransaction ?~ tx)

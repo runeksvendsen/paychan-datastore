@@ -17,10 +17,12 @@ mkQueryReq :: IsQuery q
            => Maybe PartitionId
            -> q
            -> Tagged a DS.RunQueryRequest
-mkQueryReq partM q = Tagged $
-    DS.runQueryRequest
-        & rqrPartitionId .~ partM
-        & rqrQuery ?~ mkQuery q
+mkQueryReq partM q = show hey `trace` hey
+    where hey = Tagged $
+                    DS.runQueryRequest
+                        & rqrPartitionId .~ partM
+                        & rqrQuery ?~ mkQuery q
+
 
 
 parseQueryRes :: forall a anc.

@@ -38,6 +38,7 @@ instance (IsQuery q, Identifier anc) => IsQuery (AncestorQuery anc q) where
         addFilter (mkQuery q) propFilter
       where
         propFilter = propertyFilter
+            & pfProperty ?~ (propertyReference & prName ?~ "__key__")
             & pfOp ?~ PFOHasAncestor
             & pfValue ?~ encode (unTagged $ identKey anc)
 
@@ -48,10 +49,10 @@ instance (IsQuery q, NativeValue v) => IsQuery (FilterProperty v q) where
     mkQuery (FilterProperty prop op v q) =
         addFilter (mkQuery q) propFilter
       where
-        propFilter = propertyFilter &
-            pfProperty ?~ (propertyReference & prName ?~ prop) &
-            pfOp ?~ op &
-            pfValue ?~ encode v
+        propFilter = propertyFilter
+            & pfProperty ?~ (propertyReference & prName ?~ prop)
+            & pfOp ?~ op
+            & pfValue ?~ encode v
 
 addFilter :: Query -> PropertyFilter -> Query
 addFilter q pf =

@@ -18,6 +18,12 @@ gqlKeyString i =
     where identifier = either show show (iId i)
           kind = show (typeOf (undefined :: a))
 
+-- | Used when referencing kinds in a SELECT query.
+gqlSelectString :: forall a. Identifier a => Ident a -> Text
+gqlSelectString _ =
+    cs (printf "SELECT * FROM `%s`" kindStr :: String)
+    where kindStr = show (typeOf (undefined :: a))
+
 identKey :: forall a. Identifier a => Ident a -> Tagged a DS.Key
 identKey idn@(Ident i)
     | objectId i == Left 0 = Tagged mempty

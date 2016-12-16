@@ -38,7 +38,7 @@ txGetLastNote :: NamespaceId
               -> Datastore (Maybe StoredNote)
 txGetLastNote ns tx k = do
     partId <- mkPartitionId ns
-    let query = "SELECT * FROM StoredNote WHERE most_recent_note = TRUE"
+    let query = gqlSelectString (undefined :: Ident StoredNote) <> " WHERE most_recent_note = TRUE"
         payChanId = castIdent $ getIdent k :: Ident RecvPayChan
     getFirstResult <$> txAncestorQuery (Just partId) tx payChanId query
 

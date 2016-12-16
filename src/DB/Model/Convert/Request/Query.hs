@@ -11,22 +11,35 @@ import Text.Printf
 import qualified Network.Google.Datastore as DS
 
 
-mkQueryReq :: forall a anc.
-              HasAncestor a anc
+mkQueryReq :: forall a.
+              IsEntity a
            => Maybe PartitionId
-           -> Maybe (Ident anc)
            -> Text
            -> Tagged a DS.RunQueryRequest
-mkQueryReq partM ancM query = Tagged $
+mkQueryReq partM query = Tagged $
     DS.runQueryRequest
         & rqrPartitionId .~ partM
-        & rqrGqlQuery ?~
-            (DS.gqlQuery & DS.gqQueryString ?~ completeQueryStr &
-            gqAllowLiterals ?~ True)
-        where completeQueryStr = query <> ancestorQueryStr
-              ancestorQueryStr = cs $ maybe "" mkAncestorStr ancM
+        & rqrGqlQuery ?~ mkGQLQuery query
+
+mkAncQueryReq :: forall a anc.
+              HasAncestor a anc
+           => Maybe PartitionId
+           -> Ident anc
+           -> Text
+           -> Tagged a DS.RunQueryRequest
+mkAncQueryReq partM anc query =
+    mkQueryReq partM completeQueryStr
+        where completeQueryStr = query <> cs (mkAncestorStr anc)
               mkAncestorStr :: Ident anc -> String
-              mkAncestorStr anc = printf " AND __key__ HAS ANCESTOR %s" (gqlKeyString anc)
+              mkAncestorStr a = printf " AND __key__ HAS ANCESTOR %s" (gqlKeyString a)
+
+
+mkGQLQuery :: Text
+           -> DS.GqlQuery
+mkGQLQuery query =
+    DS.gqlQuery &
+        DS.gqQueryString ?~ query &
+        gqAllowLiterals ?~ True
 
 parseQueryRes :: forall a anc.
                  HasAncestor a anc

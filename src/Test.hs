@@ -3,8 +3,7 @@
 module Test where
 
 import           Util
--- import qualified ChanDB as DB
-import           ChanDB.Interface as DB
+import           ChanDB as DB
 
 import qualified Data.Bitcoin.PaymentChannel.Test as Pay
 import qualified PromissoryNote.Test as Note
@@ -24,10 +23,10 @@ projectId :: ProjectId
 projectId = "cloudstore-test"
 
 payCount :: Word
-payCount = 50
+payCount = 25
 
 threadCount :: Word
-threadCount = 2
+threadCount = 20
 
 main :: IO ()
 main = do
@@ -38,7 +37,7 @@ main = do
     tstDataLst <- M.replicateM numThreads $ genTestData count
     -- Go!
     putStrLn . unlines $ [ ""
-                         , "Project ID: " ++ cs projectId
+                         , "Project ID:   " ++ cs projectId
                          , "Thread count: " ++ show threadCount
                          , "Pay    count: " ++ show count ++ " (per thread)" ]
     numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->

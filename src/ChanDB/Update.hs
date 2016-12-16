@@ -7,20 +7,13 @@ module ChanDB.Update
 )
 where
 
-import           ChanDB.Orphans ()
 import           Util
+import           ChanDB.Orphans ()
 import           ChanDB.Types
-import           DB.Types
 import           PromissoryNote.StoredNote  (setMostRecentNote)
 import           DB.Tx.Safe
 import           DB.Request                 (txLookup, txAncestorQuery, getFirstResult)
-import           DB.Model.Convert
 import qualified Network.Google.Datastore.Types as DS
-
-import           Control.Exception          (throw)
-import           Data.Maybe                 (fromMaybe)
-
-
 
 
 txGetChanState :: NamespaceId
@@ -37,10 +30,10 @@ txGetLastNote :: NamespaceId
               -> SendPubKey
               -> Datastore (Maybe StoredNote)
 txGetLastNote ns tx k = do
-    partId <- mkPartitionId ns
-    let query = gqlSelectString (undefined :: Ident StoredNote) <> " WHERE most_recent_note = TRUE"
-        payChanId = castIdent $ getIdent k :: Ident RecvPayChan
-    getFirstResult <$> txAncestorQuery (Just partId) tx payChanId query
+    let selectQuery w = gqlSelectString "*" (undefined :: Ident StoredNote) <> " WHERE " <> w
+        ancestorSelect n tx' anc w = txAncestorQuery n tx' anc (selectQuery w)
+        payChanId = getIdentifier k :: Ident RecvPayChan
+    getFirstResult <$> ancestorSelect (Just ns) tx payChanId "most_recent_note = TRUE"
 
 withDBState :: NamespaceId
             -> SendPubKey

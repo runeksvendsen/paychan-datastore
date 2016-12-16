@@ -1,7 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module DB.Model.Convert.Request.Commit where
 
-import DB.Model.Types.Namespace
 import DB.Model.Types.Entity
 import DB.Model.Convert.Entity
 import DB.Types

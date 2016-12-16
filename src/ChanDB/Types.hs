@@ -3,6 +3,7 @@ module ChanDB.Types
 (
   module DB
 , module Types
+, module Convert
 , UpdateErr(..)
 , DBQuery(..)
 , Key
@@ -18,6 +19,7 @@ where
 
 import Types
 import DB.Types as DB
+import DB.Model.Convert as Convert
 import Data.Time.Clock (UTCTime)
 
 import qualified Data.Bitcoin.PaymentChannel.Test as Pay

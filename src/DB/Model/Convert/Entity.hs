@@ -23,7 +23,7 @@ parseKey :: forall a anc. HasAncestor a anc => Tagged a DS.Key -> Either String 
 parseKey a = case unTagged a ^. DS.kPath of
     [idn]       -> (,) (Ident $ Left 0) <$> parsePathElem (Tagged idn)
     [anc , idn] -> (,) <$> parsePathElem (Tagged anc) <*> parsePathElem (Tagged idn)
-    path        -> Left $ "Unexpected PathElements: " ++ show path
+    path        -> Left $ "parseKey: Unexpected PathElements: " ++ show path
 
 encodeEntity :: forall a anc.
                 HasAncestor a anc

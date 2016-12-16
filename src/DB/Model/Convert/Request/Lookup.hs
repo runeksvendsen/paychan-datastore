@@ -19,13 +19,6 @@ mkLookup :: forall a anc.
 mkLookup partM anc a = Tagged $ lookupRequest & lrKeys .~
     [ unTagged (encodeKey partM anc a :: Tagged a DS.Key) ]
 
--- mkLookupDescendants :: forall a anc.
---             DeriveAncestor a anc
---          => Ident anc
---          -> Tagged a DS.LookupRequest
--- mkLookupDescendants anc = Tagged $ lookupRequest & lrKeys .~
---     [ unTagged (encodeAncestorKey anc :: Tagged anc DS.Key) ]
-
 
 parseLookupRes :: forall a anc.
                   HasAncestor a anc
@@ -43,10 +36,24 @@ parseEntityResult :: forall a anc.
                      HasAncestor a anc
                   => Tagged a DS.EntityResult
                   -> Either String ((a,Ident anc), EntityVersion)
-parseEntityResult entResT =
+parseEntityResult entResT = fmapL ("parseEntityResult: " ++) $
     case entRes ^. erEntity of
             Nothing  -> Left "Empty entityResult"
             Just ent -> parseEntity (Tagged ent :: Tagged a DS.Entity) >>=
                     \(orig,anc) -> Right ((orig,anc), ver entRes)
     where ver er = fromMaybe (internalError "EntityResult: Empty version field") (er ^. DS.erVersion)
+          entRes = unTagged entResT
+
+parseEntityResultKey :: forall a anc.
+                     HasAncestor a anc
+                  => Tagged a DS.EntityResult
+                  -> Either String (Ident a, Ident anc, EntityVersion)
+parseEntityResultKey entResT = fmapL ("parseEntityResultKey: " ++) $
+    case entRes ^. erEntity of
+            Nothing  -> Left "Empty entityResult"
+            Just ent -> case ent ^. DS.eKey of
+                Nothing  -> Left "Missing key"
+                Just key -> parseKey (Tagged key :: Tagged a DS.Key) >>=
+                    \(ancKey,entKey) -> Right (entKey, ancKey, ver entRes)
+    where ver er = fromMaybe (internalError "Empty version field") (er ^. DS.erVersion)
           entRes = unTagged entResT

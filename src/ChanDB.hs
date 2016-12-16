@@ -1,6 +1,7 @@
 module ChanDB
 (
   module ChanDB.Types
+, module ChanDB.Interface
 , module Update
 , module Error
 , insertChan, removeChan
@@ -8,7 +9,7 @@ module ChanDB
 )
 where
 
-import ChanDB.Interface ()
+import ChanDB.Interface
 import ChanDB.Types
 
 import DB.Util.Error as Error

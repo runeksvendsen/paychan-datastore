@@ -18,9 +18,10 @@ import           Data.Void                        (Void)
 import qualified Data.HashMap.Strict    as Map
 
 
-class (HasProperties a, Identifier i) => HasIdentifier a i | a -> i where
-    getIdentifier :: i -> Ident a
-    getIdentifier k = Ident $ objectId k :: Ident a
+class (HasProperties a, Identifier i) => HasIdentifier a i | a -> i
+
+getIdentifier :: forall a i. HasIdentifier a i => i -> Ident a
+getIdentifier k = Ident $ objectId k
 
 class (HasProperties a, Identifier a) => IsEntity a
 

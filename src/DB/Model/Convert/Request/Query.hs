@@ -1,7 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module DB.Model.Convert.Request.Query where
 
-import DB.Model.Convert.Request.Lookup (parseEntityResult)
+import DB.Model.Convert.Request.Lookup (parseEntityResult, parseEntityResultKey)
 import DB.Types
 import DB.Util.Error
 import DB.Model.Convert.Entity
@@ -11,15 +11,22 @@ import Text.Printf
 import qualified Network.Google.Datastore as DS
 
 
-mkQueryReq :: forall a.
-              IsEntity a
-           => Maybe PartitionId
+
+mkGQLQuery :: Text
+           -> DS.GqlQuery
+mkGQLQuery query =
+    DS.gqlQuery &
+        DS.gqQueryString ?~ query &
+        gqAllowLiterals ?~ True
+
+mkQueryReq :: Maybe PartitionId
            -> Text
            -> Tagged a DS.RunQueryRequest
 mkQueryReq partM query = Tagged $
     DS.runQueryRequest
         & rqrPartitionId .~ partM
         & rqrGqlQuery ?~ mkGQLQuery query
+
 
 mkAncQueryReq :: forall a anc.
               HasAncestor a anc
@@ -34,18 +41,11 @@ mkAncQueryReq partM anc query =
               mkAncestorStr a = printf " AND __key__ HAS ANCESTOR %s" (gqlKeyString a)
 
 
-mkGQLQuery :: Text
-           -> DS.GqlQuery
-mkGQLQuery query =
-    DS.gqlQuery &
-        DS.gqQueryString ?~ query &
-        gqAllowLiterals ?~ True
-
 parseQueryRes :: forall a anc.
                  HasAncestor a anc
-              => Tagged a DS.RunQueryResponse
-              -> Either String [ ((a,Ident anc), EntityVersion) ]
-parseQueryRes queryResT = fmapL ("RunQueryResponse: " ++) $
+              => Tagged (a,anc) DS.RunQueryResponse
+              -> Either String [ ((a, Ident anc), EntityVersion) ]
+parseQueryRes queryResT = fmapL ("parseQueryRes: " ++) $
     if not (null parseErrors) then Left $ head parseErrors else Right $ rights parseRes
   where
     parseErrors = lefts parseRes
@@ -53,4 +53,15 @@ parseQueryRes queryResT = fmapL ("RunQueryResponse: " ++) $
     entRes = maybe (internalError "QueryResultBatch must always be present.") (^. DS.qrbEntityResults)
             (unTagged queryResT ^. rBatch)
 
+parseQueryResKeys :: forall a anc.
+                 HasAncestor a anc
+              => Tagged (a,anc) DS.RunQueryResponse
+              -> Either String [ (Ident a, Ident anc, EntityVersion) ]
+parseQueryResKeys queryResT = fmapL ("parseQueryResKeys: " ++) $
+    if not (null parseErrors) then Left $ head parseErrors else Right $ rights parseRes
+  where
+    parseErrors = lefts parseRes
+    parseRes = map (parseEntityResultKey . Tagged) entRes
+    entRes = maybe (internalError "QueryResultBatch must always be present.") (^. DS.qrbEntityResults)
+            (unTagged queryResT ^. rBatch)
 

@@ -3,18 +3,18 @@ module DB.Types
 (
   module DB.Types
 , module DB.Model.Types.Entity
-, module DB.Model.Types.Namespace
 , module Datastore
 , module Google
 , DBException(..)
 , DatastoreConf(..)
 , Tagged(..)
+, Void
 )
 where
 
 import           Util
 import           DB.Model.Types.Entity
-import           DB.Model.Types.Namespace
+
 import           Data.Tagged (Tagged(..))
 import           Data.Int                         (Int64)
 import qualified Control.Exception as Except
@@ -30,7 +30,7 @@ import qualified Control.Monad.Catch            as Catch
 import qualified Control.Monad.Base             as Base
 import           Control.Monad.IO.Class           (MonadIO)
 import           Control.Applicative              (Alternative)
-
+import           Data.Void                        (Void)
 
 runDatastore :: DatastoreConf -> Datastore a -> IO a
 runDatastore cfg d = Res.runResourceT $ liftResourceT $ R.runReaderT (unDS d) cfg

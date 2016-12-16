@@ -35,9 +35,10 @@ txGetLastNote ns tx k = do
     return $ getFirstResult (res :: Either String [ ((StoredNote, Ident RecvPayChan), EntityVersion) ])
 
 
-qMostRecentNote :: SendPubKey -> Query
-qMostRecentNote k = mkQuery
-    $ AncestorQuery payChanId
+qMostRecentNote :: SendPubKey
+                -> AncestorQuery RecvPayChan (OfKind StoredNote (FilterProperty Bool Query))
+qMostRecentNote k =
+      AncestorQuery payChanId
     $ OfKind kind
     $ FilterProperty "most_recent_note" PFOEqual True
     query

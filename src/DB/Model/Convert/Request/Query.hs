@@ -13,15 +13,20 @@ import qualified Network.Google.Datastore as DS
 
 
 
-mkQueryReq :: IsQuery q
-           => Maybe PartitionId
+mkQueryReq :: ( DatastoreM m
+              , IsQuery q )
+           => Maybe NamespaceId
            -> q
-           -> Tagged a DS.RunQueryRequest
-mkQueryReq partM q = show hey `trace` hey
-    where hey = Tagged $
-                    DS.runQueryRequest
-                        & rqrPartitionId .~ partM
-                        & rqrQuery ?~ mkQuery q
+           -> m (Tagged a DS.RunQueryRequest)
+mkQueryReq nsM q = do
+    projId <- getPid
+    let projPartId = return $ partitionId & piProjectId ?~ projId
+    partId <- maybe projPartId mkPartitionId nsM
+    return $ Tagged $ mkReq partId
+  where
+    mkReq pid = DS.runQueryRequest
+        & rqrPartitionId .~ Just pid
+        & rqrQuery ?~ mkQuery pid q
 
 
 

@@ -22,9 +22,6 @@ runQueryReq txM req = Tagged <$> sendReq' (projectsRunQuery txReq)
         applyTxId tx = unTagged req & rqrReadOptions ?~ (readOptions & roTransaction ?~ tx)
 
 
-
--- | Ancestor queries are strongly consistent,
---  whereas global queries are eventually consistent.
 txQuery :: forall q a anc.
            ( IsQuery q
            , HasAncestor a anc )
@@ -33,11 +30,8 @@ txQuery :: forall q a anc.
           -> q
           -> Datastore ( Either String [ ((a, Ident anc), EntityVersion) ] )
 txQuery nsM tx q = do
-    partIdM <- maybe (return Nothing) (fmap Just . mkPartitionId) nsM
-    parseQueryRes <$> runQueryReq (Just tx) (mkReq partIdM)
-        where
-            mkReq pM = mkQueryReq pM q :: Tagged a RunQueryRequest
-
+    req <- mkQueryReq nsM q
+    parseQueryRes <$> runQueryReq (Just tx) req
 
 entityQuery :: forall q a anc.
            ( IsQuery q
@@ -46,8 +40,8 @@ entityQuery :: forall q a anc.
           -> q
           -> Datastore ( Either String [ ((a, Ident anc), EntityVersion) ] )
 entityQuery nsM q = do
-    partIdM <- maybe (return Nothing) (fmap Just . mkPartitionId) nsM
-    parseQueryRes <$> runQueryReq Nothing (mkQueryReq partIdM q)
+    req <- mkQueryReq nsM q
+    parseQueryRes <$> runQueryReq Nothing req
 
 
 keysOnlyQuery :: forall q a anc.
@@ -57,8 +51,8 @@ keysOnlyQuery :: forall q a anc.
               -> q
               -> Datastore ( Either String [ (Ident a, Ident anc) ] )
 keysOnlyQuery nsM q = do
-    partIdM <- maybe (return Nothing) (fmap Just . mkPartitionId) nsM
-    identE <- parseQueryResKeys <$> runQueryReq Nothing (mkQueryReq partIdM q)
+    req <- mkQueryReq nsM q
+    identE <- parseQueryResKeys <$> runQueryReq Nothing req
     let rmVer (i,a,_) = (i,a)
     return $ fmap (map rmVer) identE
 

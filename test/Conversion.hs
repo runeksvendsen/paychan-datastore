@@ -1,13 +1,11 @@
-module Test.Main where
+module Conversion where
 
-import DB.Model.Convert.Properties          -- (jsonFromDS, jsonToDS)
-import Test.ArbitraryJSON   ()
+import DB.Model.Convert.Properties
+import ArbitraryJSON   ()
 import Test.Framework       (Test, testGroup, defaultMain)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 
 import           Data.String.Conversions        (cs)
-
-import Debug.Trace
 import qualified Data.Aeson as JSON
 {-# ANN module ("HLint: ignore Redundant if"::String) #-}
 

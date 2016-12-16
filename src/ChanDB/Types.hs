@@ -6,7 +6,7 @@ module ChanDB.Types
 , module Convert
 , UpdateErr(..)
 , DBQuery(..)
-, Key
+-- , Key
 , Note
 , RecvPayChan
 , Pay.SendPubKey
@@ -31,7 +31,7 @@ data UpdateErr =
   | ChannelNotFound
 
 
-type Key = Pay.SendPubKey
+-- type Key = Pay.SendPubKey
 
 -- | Translates into a GQL query
 data DBQuery =

@@ -35,7 +35,8 @@ txCommit tx commReq =
 
 -- |Begin transaction. The returned handle must be released safely after use,
 --   by doing either a commit or a rollback.
-txBeginUnsafe :: Datastore TxId
+txBeginUnsafe :: HasScope '[AuthDatastore] ProjectsBeginTransaction
+              => Datastore TxId
 txBeginUnsafe = do
     txBeginRes <- sendReq (projectsBeginTransaction beginTransactionRequest)
     case txBeginRes ^. btrTransaction of

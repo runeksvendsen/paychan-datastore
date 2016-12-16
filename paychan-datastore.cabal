@@ -1,138 +1,207 @@
-name:                paychan-datastore
-version:             0.1.0.0
-synopsis:            Initial project template from stack
-description:         Please see README.md
-homepage:            https://github.com/runeksvendsen/paychan-datastore#readme
-license:             PublicDomain
-author:              Rune K. Svendsen
-maintainer:          runesvend@gmail.com
-copyright:           2016 Rune K. Svendsen
-category:            Finance Network Bitcoin
-build-type:          Simple
-cabal-version:       >=1.10
+-- This file has been generated from package.yaml by hpack version 0.14.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           paychan-datastore
+version:        0.1.0.0
+description:    Please see README.md
+category:       Finance Network Bitcoin
+homepage:       https://github.com/runeksvendsen/paychan-datastore#readme
+bug-reports:    https://github.com/runeksvendsen/paychan-datastore/issues
+author:         Rune K. Svendsen
+maintainer:     runesvend@gmail.com
+copyright:      2016 Rune K. Svendsen
+license:        PublicDomain
+build-type:     Simple
+cabal-version:  >= 1.10
 
 source-repository head
-  type:     git
+  type: git
   location: https://github.com/runeksvendsen/paychan-datastore
 
-
 library
-  ghc-options:         -W -Wredundant-constraints
-  hs-source-dirs:      src
-  default-language:    Haskell2010
-  default-extensions:  OverloadedStrings, MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, FunctionalDependencies
+  hs-source-dirs:
+      src
+  default-extensions: OverloadedStrings MultiParamTypeClasses TypeSynonymInstances FlexibleInstances FlexibleContexts FunctionalDependencies DataKinds ScopedTypeVariables
+  ghc-options: -W -Wredundant-constraints
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , base16-bytestring
+    , text
+    , unordered-containers
+    , gogol
+    , gogol-core
+    , gogol-datastore
+    , mtl
+    , lens
+    , aeson
+    , vector
+    , scientific
+    , cereal
+    , QuickCheck
+    , string-conversions
+    , time
+    , http-conduit
+    , exceptions
+    , monad-control
+    , resourcet
+    , transformers-base
+    , transformers
+    , async
+    , errors
+    , stm
+    , stm-containers
+    , hashable
+    , base64-bytestring
+    , quickcheck-text
+    , tagged
+    , monad-logger
+    , bitcoin-payment-channel
+    , promissory-note-types
   exposed-modules:
-
-
+      ChanDB
   other-modules:
-  build-depends:       base >= 4.7 && < 5
-                     , bytestring
-                     , base16-bytestring
-                     , text
-                     , unordered-containers
-                     , gogol
-                     , gogol-core
-                     , gogol-datastore
-                     , mtl
-                     , lens
-                     , aeson, vector, scientific
-                     , cereal
-                     , QuickCheck
-                     , string-conversions
-                     , time
-                     , http-conduit
-                     , exceptions
-                     , monad-control
-                     , resourcet
-                     , transformers-base
-                     , transformers
-                     , async
-                     , errors
-                     , stm, stm-containers, hashable
-                     , base64-bytestring
-                     , quickcheck-text
-                     , tagged
-                     , monad-logger
+      ChanDB.Creation
+      ChanDB.Interface
+      ChanDB.Interface.Implementation.Datastore
+      ChanDB.Interface.Spec
+      ChanDB.Orphans
+      ChanDB.Query
+      ChanDB.Types
+      ChanDB.Update
+      ChanDB.Util
+      DB.Model.Convert
+      DB.Model.Convert.Entity
+      DB.Model.Convert.Identifier
+      DB.Model.Convert.Properties
+      DB.Model.Convert.Request
+      DB.Model.Convert.Request.Commit
+      DB.Model.Convert.Request.Lookup
+      DB.Model.Convert.Request.Query
+      DB.Model.Convert.Value
+      DB.Model.Convert.Value.EncodeAsKey
+      DB.Model.Convert.Value.Native
+      DB.Model.Types.Entity
+      DB.Model.Types.Identifier
+      DB.Model.Types.Key
+      DB.Model.Types.Query
+      DB.Model.Types.Request
+      DB.Query
+      DB.Request
+      DB.Request.Lookup
+      DB.Request.Query
+      DB.Request.Util
+      DB.Tx.Safe
+      DB.Tx.Util
+      DB.Types
+      DB.Util.Error
+      Types
+      Util
+      Paths_paychan_datastore
+  default-language: Haskell2010
 
 test-suite conversion-test
-  default-language: Haskell2010
-  default-extensions: OverloadedStrings, MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, FunctionalDependencies
   type: exitcode-stdio-1.0
-  hs-source-dirs: src
-  main-is: Test/Main.hs
-  other-modules:
-  -- Test.ArbitraryJSON, DB.Types, DB.Model.Convert.Properties, DB.Model.Value.Native, DB.Creation
-  ghc-options: -main-is Test.Main
+  main-is: Conversion.hs
+  hs-source-dirs:
+      test
+  default-extensions: OverloadedStrings MultiParamTypeClasses TypeSynonymInstances FlexibleInstances FlexibleContexts FunctionalDependencies DataKinds ScopedTypeVariables
+  ghc-options: -main-is Conversion
   build-depends:
-      base
-    , paychan-datastore
-    , gogol-datastore
-    , aeson
-    , HUnit >= 1.3
-    , lens
-    , QuickCheck >= 2.8.2
-    , test-framework, test-framework-quickcheck2
-    , quickcheck-text
-    , scientific
-    , text
+      base >=4.7 && <5
     , bytestring
-    , vector
-    , transformers
+    , base16-bytestring
+    , text
     , unordered-containers
+    , gogol
+    , gogol-core
+    , gogol-datastore
+    , mtl
+    , lens
+    , aeson
+    , vector
+    , scientific
+    , cereal
+    , QuickCheck
     , string-conversions
-    , errors
+    , time
+    , http-conduit
     , exceptions
-    , tagged
     , monad-control
-
+    , resourcet
+    , transformers-base
+    , transformers
+    , async
+    , errors
+    , stm
+    , stm-containers
+    , hashable
+    , base64-bytestring
+    , quickcheck-text
+    , tagged
+    , monad-logger
+    , bitcoin-payment-channel
+    , promissory-note-types
+    , base
+    , paychan-datastore
+    , HUnit >=1.3
+    , QuickCheck >=2.8.2
+    , test-framework
+    , test-framework-quickcheck2
+  other-modules:
+      ArbitraryJSON
+      Storage
+  default-language: Haskell2010
 
 test-suite storage-test
-  type:                 exitcode-stdio-1.0
-  main-is:              Test.hs
-  default-language:     Haskell2010
-  hs-source-dirs:       src
-  ghc-options:          -Wall -main-is Test -threaded
-
-  default-extensions:   OverloadedStrings
-                        MultiParamTypeClasses
-                        TypeSynonymInstances
-                        FlexibleInstances
-                        FunctionalDependencies
-                        GADTs
-                        FlexibleContexts
-                        DataKinds
-                        ScopedTypeVariables
-
-  build-depends:       base >= 4.7 && < 5
-                       , paychan-datastore
-                       , bytestring
-                       , base16-bytestring
-                       , text
-                       , unordered-containers
-                       , gogol
-                       , gogol-core
-                       , gogol-datastore
-                       , mtl
-                       , lens
-                       , aeson, vector, scientific
-                       , cereal
-                       , bitcoin-payment-channel, promissory-note-types
-                       , QuickCheck
-                       , string-conversions
-                       , time
-                       , http-conduit
-                       , exceptions
-                       , monad-control
-                       , resourcet
-                       , transformers-base
-                       , transformers
-                       , async
-                       , errors
-                       , stm, stm-containers, hashable
-                       , base64-bytestring
-                       , quickcheck-text
-                       , tagged
-                       , monad-logger
-
-  other-modules:      ChanDB
-                      ChanDB.Types
+  type: exitcode-stdio-1.0
+  main-is: Storage.hs
+  hs-source-dirs:
+      test
+  default-extensions: OverloadedStrings MultiParamTypeClasses TypeSynonymInstances FlexibleInstances FlexibleContexts FunctionalDependencies DataKinds ScopedTypeVariables GADTs FlexibleContexts DataKinds
+  ghc-options: -Wall -main-is Storage -threaded
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , base16-bytestring
+    , text
+    , unordered-containers
+    , gogol
+    , gogol-core
+    , gogol-datastore
+    , mtl
+    , lens
+    , aeson
+    , vector
+    , scientific
+    , cereal
+    , QuickCheck
+    , string-conversions
+    , time
+    , http-conduit
+    , exceptions
+    , monad-control
+    , resourcet
+    , transformers-base
+    , transformers
+    , async
+    , errors
+    , stm
+    , stm-containers
+    , hashable
+    , base64-bytestring
+    , quickcheck-text
+    , tagged
+    , monad-logger
+    , bitcoin-payment-channel
+    , promissory-note-types
+    , paychan-datastore
+    , bitcoin-payment-channel
+    , promissory-note-types
+    , test-framework
+    , test-framework-quickcheck2
+  other-modules:
+      ArbitraryJSON
+      Conversion
+  default-language: Haskell2010

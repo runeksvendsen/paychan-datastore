@@ -14,6 +14,7 @@ module Util
 , trace
 , void
 , Ctrl.liftBaseOp
+, printf
 )
 where
 
@@ -25,12 +26,13 @@ import           Control.Monad.Trans.Control    as Ctrl
 
 import qualified Control.Exception as Except
 
-import           Control.Lens
+import           Control.Lens                   hiding (op)
 import           Data.Maybe                     (fromMaybe, isJust, isNothing, fromJust)
 import           Data.Either                    (lefts, rights)
 import           Data.String.Conversions        (cs)
 import           Data.EitherR                   (fmapL)
 import           Data.Tagged (Tagged(..))
+import           Text.Printf (printf)
 
 import Debug.Trace (trace)
 

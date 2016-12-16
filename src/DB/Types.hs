@@ -19,7 +19,7 @@ import           Data.Tagged (Tagged(..))
 import           Data.Int                         (Int64)
 import qualified Control.Exception as Except
 import qualified Data.ByteString as BS
-import Network.Google.Datastore as Datastore hiding (Entity, Key, key, query)
+import Network.Google.Datastore as Datastore hiding (Entity, key)
 import Network.Google           as Google
 import qualified Data.Text as T
 import qualified Control.Monad.Reader as R
@@ -31,6 +31,9 @@ import qualified Control.Monad.Base             as Base
 import           Control.Monad.IO.Class           (MonadIO)
 import           Control.Applicative              (Alternative)
 import           Data.Void                        (Void)
+
+
+emptyQuery = query
 
 runDatastore :: DatastoreConf -> Datastore a -> IO a
 runDatastore cfg d = Res.runResourceT $ liftResourceT $ R.runReaderT (unDS d) cfg

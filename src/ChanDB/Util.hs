@@ -4,7 +4,7 @@ import           Util
 import           DB.Types
 import           PromissoryNote.StoredNote  (setMostRecentNote)
 import           DB.Tx.Safe
-import           DB.Request                 (txLookup, txAncestorQuery, getFirstResult)
+import           DB.Request                 (txLookup, txQuery, getFirstResult)
 import           DB.Model.Convert
 
 import           Control.Exception          (throw)

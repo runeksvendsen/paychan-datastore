@@ -15,7 +15,11 @@ import qualified Data.HashMap.Strict        as Map
 import qualified Network.Google.Datastore.Types   as DS
 
 
-encodeKey :: forall a anc. HasAncestor a anc => Maybe DS.PartitionId -> Ident anc -> Ident a -> Tagged a DS.Key
+encodeKey :: forall a anc. HasAncestor a anc
+          => Maybe DS.PartitionId
+          -> Ident anc
+          -> Ident a
+          -> Tagged a DS.Key
 encodeKey partIdM anc a = Tagged $ unTagged bareKey & DS.kPartitionId .~ partIdM
     where bareKey = identKey anc </> identKey a
 

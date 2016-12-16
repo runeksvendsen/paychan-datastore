@@ -10,9 +10,10 @@ where
 import           Util
 import           ChanDB.Orphans ()
 import           ChanDB.Types
+import           DB.Query
 import           PromissoryNote.StoredNote  (setMostRecentNote)
 import           DB.Tx.Safe
-import           DB.Request                 (txLookup, txAncestorQuery, getFirstResult)
+import           DB.Request                 (txLookup, txQuery, getFirstResult)
 import qualified Network.Google.Datastore.Types as DS
 
 
@@ -30,10 +31,20 @@ txGetLastNote :: NamespaceId
               -> SendPubKey
               -> Datastore (Maybe StoredNote)
 txGetLastNote ns tx k = do
-    let selectQuery w = gqlSelectString "*" (undefined :: Ident StoredNote) <> " WHERE " <> w
-        ancestorSelect n tx' anc w = txAncestorQuery n tx' anc (selectQuery w)
-        payChanId = getIdentifier k :: Ident RecvPayChan
-    getFirstResult <$> ancestorSelect (Just ns) tx payChanId "most_recent_note = TRUE"
+    res <- txQuery (Just ns) tx (qMostRecentNote k)
+    return $ getFirstResult (res :: Either String [ ((StoredNote, Ident RecvPayChan), EntityVersion) ])
+
+
+qMostRecentNote :: SendPubKey -> Query
+qMostRecentNote k = mkQuery
+    $ AncestorQuery payChanId
+    $ OfKind kind
+    $ FilterProperty "most_recent_note" PFOEqual True
+    query
+  where
+    kind = undefined :: Ident StoredNote
+    payChanId = getIdentifier k :: Ident RecvPayChan
+
 
 withDBState :: NamespaceId
             -> SendPubKey

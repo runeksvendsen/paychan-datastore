@@ -2,17 +2,21 @@
 {-# LANGUAGE ScopedTypeVariables, DeriveAnyClass, GADTs, FlexibleContexts, DataKinds #-}
 module DB.Request.Query where
 
-import           DB.Request.Util
-import           DB.Types
-import           DB.Model.Convert
-import           Util
+import DB.Model.Types.Query
+import DB.Request.Util
+import DB.Types
+import DB.Model.Convert
+import Util
 
 
-runQueryReq ::
-            Maybe TxId
+heyHo :: DatastoreM m => RunQueryRequest -> m RunQueryResponse
+heyHo req = sendReq' (projectsRunQuery req)
+
+runQueryReq :: DatastoreM m
+         => Maybe TxId
          -> Tagged a RunQueryRequest
-         -> Datastore ( Tagged (a,anc) RunQueryResponse )
-runQueryReq txM req = Tagged <$> sendReq (projectsRunQuery txReq)
+         -> m ( Tagged (a,anc) RunQueryResponse )
+runQueryReq txM req = Tagged <$> sendReq' (projectsRunQuery txReq)
     where
         txReq = maybe (unTagged req) applyTxId txM
         applyTxId tx = unTagged req & rqrReadOptions ?~ (readOptions & roTransaction ?~ tx)
@@ -21,47 +25,42 @@ runQueryReq txM req = Tagged <$> sendReq (projectsRunQuery txReq)
 
 -- | Ancestor queries are strongly consistent,
 --  whereas global queries are eventually consistent.
-txAncestorQuery :: forall a anc.
-           HasAncestor a anc
+txQuery :: forall q a anc.
+           ( IsQuery q
+           , HasAncestor a anc )
           => Maybe NamespaceId
           -> TxId
-          -> Ident anc
-          -> Text
+          -> q
           -> Datastore ( Either String [ ((a, Ident anc), EntityVersion) ] )
-txAncestorQuery nsM tx anc query = do
+txQuery nsM tx q = do
     partIdM <- maybe (return Nothing) (fmap Just . mkPartitionId) nsM
     parseQueryRes <$> runQueryReq (Just tx) (mkReq partIdM)
         where
-            mkReq pM = mkAncQueryReq pM anc query :: Tagged a RunQueryRequest
+            mkReq pM = mkQueryReq pM q :: Tagged a RunQueryRequest
 
 
-globalQuery :: forall a anc.
-            HasAncestor a anc
+entityQuery :: forall q a anc.
+           ( IsQuery q
+           , HasAncestor a anc )
           => Maybe NamespaceId
-          -> Text
+          -> q
           -> Datastore ( Either String [ ((a, Ident anc), EntityVersion) ] )
-globalQuery nsM query = do
+entityQuery nsM q = do
     partIdM <- maybe (return Nothing) (fmap Just . mkPartitionId) nsM
-    parseQueryRes <$> runQueryReq Nothing (mkQueryReq partIdM query)
+    parseQueryRes <$> runQueryReq Nothing (mkQueryReq partIdM q)
 
 
-
-keysOnlyQuery :: forall a anc.
-                HasAncestor a anc
+keysOnlyQuery :: forall q a anc.
+               ( IsQuery q
+               , HasAncestor a anc )
               => Maybe NamespaceId
-              -> Maybe Text
+              -> q
               -> Datastore ( Either String [ (Ident a, Ident anc) ] )
-keysOnlyQuery nsM filterM = do
+keysOnlyQuery nsM q = do
     partIdM <- maybe (return Nothing) (fmap Just . mkPartitionId) nsM
-    let maybeWhere = maybe "" (" WHERE " <>) filterM
-    let completeQuery = gqlSelectString "__key__" (undefined :: Ident a) <> maybeWhere
-    identE <- parseQueryResKeys <$> runQueryReq Nothing (mkQueryReq partIdM completeQuery)
+    identE <- parseQueryResKeys <$> runQueryReq Nothing (mkQueryReq partIdM q)
     let rmVer (i,a,_) = (i,a)
     return $ fmap (map rmVer) identE
 
-
---         ancestorSelect n tx' anc w = txAncestorQuery n tx' anc (selectQuery w)
---         payChanId = castIdent $ getIdent k :: Ident RecvPayChan
---     getFirstResult <$> ancestorSelect (Just ns) tx payChanId "most_recent_note = TRUE"
 
 

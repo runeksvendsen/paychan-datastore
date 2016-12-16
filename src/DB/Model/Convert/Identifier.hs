@@ -24,6 +24,13 @@ gqlSelectString selection _ =
     cs (printf "SELECT %s FROM `%s`" selection kindStr :: String)
     where kindStr = show (typeOf (undefined :: a))
 
+-- | Used when referencing kinds in a 'Query'.
+gqlKind :: forall a. Identifier a => Ident a -> DS.KindExpression
+gqlKind _ =
+    DS.kindExpression & DS.keName ?~ cs kindStr
+        where kindStr = show (typeOf (undefined :: a))
+
+
 identKey :: forall a. Identifier a => Ident a -> Tagged a DS.Key
 identKey idn@(Ident i)
     | objectId i == Left 0 = Tagged mempty

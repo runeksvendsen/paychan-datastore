@@ -1,4 +1,4 @@
-module Test.ArbitraryJSON where
+module ArbitraryJSON where
 
 import Test.QuickCheck
 import Data.Aeson

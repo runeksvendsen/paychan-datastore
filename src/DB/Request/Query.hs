@@ -9,22 +9,49 @@ import DB.Model.Convert
 import Util
 
 
-heyHo :: DatastoreM m => RunQueryRequest -> m RunQueryResponse
-heyHo req = sendReq' (projectsRunQuery req)
 
-runQueryReq :: DatastoreM m
+streamQueryBatch ::
+    ( DatastoreM m
+    , IsQuery q
+    , HasScope '[AuthDatastore] ProjectsRunQuery
+    )
+    => Maybe NamespaceId
+    -> q
+    -> m [Entity]
+streamQueryBatch nsM query = do
+    res <- runQueryReq Nothing =<< mkQueryReq nsM query
+    case parseRes (unTagged res) of
+        Left e -> throw . InternalError $ "openChannelKeys: " ++ e
+        Right (queryEnts, Nothing)   -> return queryEnts
+        Right (queryEnts, Just curs) -> loop queryEnts curs
+  where
+    parseRes :: RunQueryResponse -> Either String ([Entity], Maybe Cursor)
+    parseRes = parseQueryBatchRes >=> parseBatchResults
+    loop queryEnts curs =
+        streamQueryBatch nsM (StartAtCursor curs query) >>=
+        \entLstAccum -> return (queryEnts ++ entLstAccum)
+
+openChannelsQuery = undefined
+
+
+runQueryReq ::
+            ( DatastoreM m
+            , HasScope '[AuthDatastore] ProjectsRunQuery
+            )
          => Maybe TxId
          -> Tagged a RunQueryRequest
          -> m ( Tagged (a,anc) RunQueryResponse )
-runQueryReq txM req = Tagged <$> sendReq' (projectsRunQuery txReq)
-    where
-        txReq = maybe (unTagged req) applyTxId txM
-        applyTxId tx = unTagged req & rqrReadOptions ?~ (readOptions & roTransaction ?~ tx)
+runQueryReq txM req =
+    Tagged <$> sendReq' (projectsRunQuery txReq)
+  where
+    txReq = maybe uReq (`atomically` uReq) txM
+    uReq = unTagged req
 
 
 txQuery :: forall q a anc.
            ( IsQuery q
-           , HasAncestor a anc )
+           , HasAncestor a anc
+           , HasScope '[AuthDatastore] ProjectsRunQuery )
           => Maybe NamespaceId
           -> TxId
           -> q
@@ -35,7 +62,8 @@ txQuery nsM tx q = do
 
 entityQuery :: forall q a anc.
            ( IsQuery q
-           , HasAncestor a anc )
+           , HasAncestor a anc
+           , HasScope '[AuthDatastore] ProjectsRunQuery )
           => Maybe NamespaceId
           -> q
           -> Datastore ( Either String [ ((a, Ident anc), EntityVersion) ] )
@@ -46,7 +74,8 @@ entityQuery nsM q = do
 
 keysOnlyQuery :: forall q a anc.
                ( IsQuery q
-               , HasAncestor a anc )
+               , HasAncestor a anc
+               , HasScope '[AuthDatastore] ProjectsRunQuery )
               => Maybe NamespaceId
               -> q
               -> Datastore ( Either String [ (Ident a, Ident anc) ] )

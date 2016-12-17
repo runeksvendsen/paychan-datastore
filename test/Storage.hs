@@ -89,7 +89,13 @@ doPayment key payment = do
     DB.noteWithState key $ \pChan noteM -> do
         now <- liftIO Clock.getCurrentTime
         case Pay.recvPayment now pChan payment of
-            Right (a,s) -> mkNewNote (a,s) now noteM
+            Right (a,s) -> do
+                r@(Right (_,note)) <- mkNewNote (a,s) now noteM
+                let anc = WithAncestor key (WithAncestor pChan (getIdent note))
+                liftIO $ print $ anc
+                liftIO $ print $ pathElems anc
+                return r
+
             Left e -> error ("recvPayment error :( " ++ show e) >> return (Left e)
   where
     mkNewNote (val,s) now prevNoteM = do

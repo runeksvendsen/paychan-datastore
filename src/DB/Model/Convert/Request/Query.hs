@@ -54,27 +54,6 @@ parseQueryResKeys queryResT = fmapL ("parseQueryResKeys: " ++) $
     entRes = maybe (internalError "QueryResultBatch must always be present.") (^. DS.qrbEntityResults)
             (unTagged queryResT ^. rBatch)
 
--- |Retrieve a list of keys for all open channels.
-openChannelKeys pid = openChannelKeysImpl pid Nothing
-
-openChannelKeysImpl
-    :: ( MonadGoogle '[AuthDatastore] m
-    ,    HasScope    '[AuthDatastore] ProjectsRunQuery )
-    => ProjectId -> Maybe Cursor -> m [DS.Entity]
-openChannelKeysImpl projectId cursM =
-    openChannelsQuery projectId cursM >>=
-    \qr -> case parseRes qr of
-        Left e -> internalErrorM $ "openChannelKeys: " ++ e
-        Right (queryKeys, Nothing)   -> return queryKeys
-        Right (queryKeys, Just curs) -> loop queryKeys curs
-  where
-    parseRes :: RunQueryResponse -> Either String ([DS.Entity], Maybe Cursor)
-    parseRes = parseQueryBatchRes >=> parseBatchResults
-    loop queryKeys curs =
-        openChannelKeysImpl projectId (Just curs) >>=
-        \keyLstAccum -> return (queryKeys ++ keyLstAccum)
-
-openChannelsQuery = undefined
 
 parseQueryBatchRes :: RunQueryResponse -> Either String QueryResultBatch
 parseQueryBatchRes  qr = maybe

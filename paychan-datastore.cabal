@@ -83,9 +83,10 @@ library
       DB.Model.Convert.Value
       DB.Model.Convert.Value.EncodeAsKey
       DB.Model.Convert.Value.Native
+      DB.Model.Types
+      DB.Model.Types.Ancestor
       DB.Model.Types.Entity
       DB.Model.Types.Identifier
-      DB.Model.Types.Key
       DB.Model.Types.Query
       DB.Model.Types.Request
       DB.Query

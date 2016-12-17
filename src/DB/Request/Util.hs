@@ -2,6 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables, DeriveAnyClass, GADTs, FlexibleContexts, DataKinds #-}
 module DB.Request.Util where
 
+import DB.Model.Types.Request
 import DB.Types
 import DB.Util.Error
 import Network.Google as Google
@@ -12,11 +13,12 @@ sendReq' mkReq = do
     pid <- getPid
     liftGoogle $ Google.send (mkReq pid)
 
+-- sendReq'' :: (DatastoreM m, HasProject req p, HasScope '[AuthDatastore] p, GoogleRequest p) => req -> m (Rs p)
+-- sendReq'' req = mkProjectReq req >>= liftGoogle . Google.send
 
-sendReq :: (HasScope '[AuthDatastore] a, GoogleRequest a) => (ProjectId -> a) -> Datastore (Rs a)
-sendReq mkReq = do
-    pid <- getPid
-    liftGoogle $ Google.send (mkReq pid)
+
+-- sendReq :: forall p. (HasScope '[AuthDatastore] p, GoogleRequest p) => p -> Datastore (Rs p)
+-- sendReq = liftGoogle . Google.send
 
 
 

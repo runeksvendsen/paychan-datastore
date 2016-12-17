@@ -1,18 +1,14 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables, FlexibleInstances #-}
 module DB.Model.Types.Identifier where
 
--- import           DB.Model.Storable
 import           Types
--- import           Util
-
--- import           PromissoryNote                   (PromissoryNote, UUID)
--- import qualified PromissoryNote                 as Note
--- import qualified Data.Bitcoin.PaymentChannel    as Pay
+import           Util
 import qualified Data.ByteString.Base16         as B16
 import qualified Data.Serialize                 as Bin
 import           Data.String.Conversions          (cs)
 import           Data.Typeable
 import           Data.Void                        (Void)
+import           Network.Google.Datastore       as DS
 
 
 data Ident a = Ident
@@ -28,6 +24,13 @@ class Typeable a => Identifier a where
 
 getIdent :: forall a. Identifier a => a -> Ident a
 getIdent a = Ident (objectId a)
+
+identPathElem :: forall a. Identifier a => a -> DS.PathElement
+identPathElem i = DS.pathElement &
+        DS.peKind ?~ cs kindStr &
+        either (DS.peId ?~) (DS.peName ?~) (objectId i)
+  where
+    kindStr = show (typeOf (undefined :: a))
 
 castIdent :: Ident a -> Ident b
 castIdent (Ident i) = Ident i

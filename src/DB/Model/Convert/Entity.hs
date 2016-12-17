@@ -44,7 +44,7 @@ parseEntity :: forall a anc.
                HasAncestor a anc
             => Tagged a DS.Entity
             -> Either String (a, Ident anc)
-parseEntity entT = do
+parseEntity entT = fmapL ("parseEntity:" ++) $ do
     nKey <- getNativeKey entT
     (ancIdent, _) <- parseKey nKey
     a <- decodeProperties (Tagged $ props entT)

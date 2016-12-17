@@ -3,34 +3,36 @@ module DB.Types
 (
   module DB.Types
 , module DB.Model.Types.Entity
+, module DB.Model.Types.Request
+, module Ancestor
 , module Datastore
 , module Google
+, module Export
 , DBException(..)
 , DatastoreConf(..)
 , Tagged(..)
-, Void
+
 )
 where
 
 import           Util
+import           DB.Model.Types as Export
 import           DB.Model.Types.Entity
-
+import           DB.Model.Types.Request
+import           DB.Model.Types.Ancestor as Ancestor
 import           Data.Tagged (Tagged(..))
-import           Data.Int                         (Int64)
-import qualified Control.Exception as Except
-import qualified Data.ByteString as BS
-import Network.Google.Datastore as Datastore hiding (Entity, key)
-import Network.Google           as Google
-import qualified Data.Text as T
-import qualified Control.Monad.Reader as R
 
+import Network.Google.Datastore as Datastore hiding (key)
+import Network.Google           as Google
+
+import qualified Control.Exception as Except
+import qualified Control.Monad.Reader as R
 import           Control.Monad.Trans.Resource   as Res
 import           Control.Monad.Trans.Control    as Ctrl
 import qualified Control.Monad.Catch            as Catch
 import qualified Control.Monad.Base             as Base
 import           Control.Monad.IO.Class           (MonadIO)
 import           Control.Applicative              (Alternative)
-import           Data.Void                        (Void)
 
 
 emptyQuery = query
@@ -58,6 +60,13 @@ instance DatastoreM Datastore where
         cfg <- R.ask
         liftResourceT $ R.runReaderT (unDS d) cfg
 
+mkProjectReq :: ( DatastoreM m
+                , HasProject a p )
+             => a
+             -> m p
+mkProjectReq req = do
+    pid <- getPid
+    return $ _mkProjectReq req pid
 
 newtype Datastore a = Datastore { unDS :: R.ReaderT DatastoreConf (Res.ResourceT IO) a }
     deriving
@@ -98,14 +107,3 @@ data DBException  =
 
 instance Except.Exception DBException
 
-
-
-type ProjectId = T.Text
-type NamespaceId = T.Text
-
-type AuthCloudPlatform = "https://www.googleapis.com/auth/cloud-platform"
-type AuthDatastore = "https://www.googleapis.com/auth/datastore"
-
-type EntityVersion = Int64
-type TxId = BS.ByteString   -- ^ Transaction handle
-type Cursor = BS.ByteString -- ^ Query batch result handle

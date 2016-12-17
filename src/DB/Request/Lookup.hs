@@ -23,6 +23,6 @@ txLookup :: forall a anc.
 txLookup ns tx anc a =
     parseLookupRes <$> reqRes
         where
-            reqRes = Tagged <$> sendReq (projectsLookup reqWithTx) -- (nsProjectId ns))
-            reqWithTx = unTagged (mkLookup ns anc a :: Tagged a LookupRequest) &
-                lrReadOptions ?~ (readOptions & roTransaction ?~ tx)
+            reqRes = Tagged <$> sendReq' (projectsLookup reqWithTx) -- (nsProjectId ns))
+            reqWithTx = atomically tx $ unTagged (mkLookup ns anc a :: Tagged a LookupRequest)
+--                 lrReadOptions ?~ (readOptions & roTransaction ?~ tx)

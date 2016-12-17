@@ -1,5 +1,11 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
-module DB.Model.Convert.Identifier where
+module DB.Model.Convert.Identifier
+(
+  module DB.Model.Convert.Identifier
+, module DB.Model.Types.Identifier
+)
+
+where
 
 import DB.Model.Types.Identifier
 import Types

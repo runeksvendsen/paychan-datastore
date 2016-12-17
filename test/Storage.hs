@@ -91,7 +91,9 @@ doPayment key payment = do
         case Pay.recvPayment now pChan payment of
             Right (a,s) -> do
                 r@(Right (_,note)) <- mkNewNote (a,s) now noteM
-                let anc = WithAncestor key (WithAncestor pChan (getIdent note))
+                let anc :: WithAncestor SendPubKey (WithAncestor RecvPayChan (Ident StoredNote))
+                    anc = key <//> (key <//> ident note)
+
                 liftIO $ print $ anc
                 liftIO $ print $ pathElems anc
                 return r

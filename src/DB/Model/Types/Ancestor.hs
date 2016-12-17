@@ -15,25 +15,32 @@ instance Typeable a => HasKeyPath (Ident a) where
     pathElems = pathElems . unTagged . toPathElem
 
 
--- data TheEntity a = TheEntity a
---     deriving (Eq, Show, Typeable)
-
--- instance Identifier a => HasKeyPath (TheEntity a) where
---     pathElems (TheEntity i) = pathElems $ identPathElem i
-
-
-data WithAncestor anc a = WithAncestor anc a
+data WithAncestor anc a = WithAncestor (Ident anc) a
     deriving (Eq, Show, Typeable)
 
-instance Identifier a => HasKeyPath (WithAncestor Void a) where
-    pathElems (WithAncestor _ a) =
-        [ identPathElem a ]
-
--- instance (Identifier anc, Typeable a) => HasKeyPath (WithAncestor anc (Ident a)) where
---     pathElems (WithAncestor anc i) =
---         [ identPathElem anc , unTagged $ toPathElem i ]
 
 instance (Identifier anc, HasKeyPath a) => HasKeyPath (WithAncestor anc a) where
     pathElems (WithAncestor anc i) =
         identPathElem anc : pathElems i
 
+(<//>) :: Identifier ak
+       => ak
+       -> a
+       -> WithAncestor anc a
+anc <//> a = WithAncestor (ident anc) a
+
+
+-- class ConcatIdent anc a where
+--     (<//>) :: anc -> a -> [PathElement]
+
+-- instance (Identifier anc, HasKeyPath a) => ConcatIdent anc a where
+--     anc <//> a = identPathElem anc : pathElems a
+
+-- instance (Identifier anc, Typeable a) => ConcatIdent anc (Ident a) where
+--     anc <//> a = [ identPathElem anc, unTagged (toPathElem a) ]
+
+
+
+-- instance Identifier a => HasKeyPath (WithAncestor Void a) where
+--     pathElems (WithAncestor _ a) =
+--         [ identPathElem a ]

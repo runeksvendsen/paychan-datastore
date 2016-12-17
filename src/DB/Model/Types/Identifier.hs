@@ -25,6 +25,9 @@ class Typeable a => Identifier a where
 getIdent :: forall a. Identifier a => a -> Ident a
 getIdent a = Ident (objectId a)
 
+ident :: Identifier a => a -> Ident b
+ident a = Ident (objectId a)
+
 identPathElem :: forall a. Identifier a => a -> DS.PathElement
 identPathElem i = DS.pathElement &
         DS.peKind ?~ cs kindStr &
@@ -40,7 +43,10 @@ type Root = Ident Void
 root :: Root
 root = Ident $ Left 0
 
--- | Root entities have an ancestor 'Identifier' of @Ident Void@
+
+instance Typeable a => Identifier (Ident a) where
+    objectId (Ident id) = id
+
 instance Identifier Void where
     objectId _ = Left 0
 

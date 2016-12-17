@@ -44,8 +44,8 @@ root :: Root
 root = Ident $ Left 0
 
 
-instance Typeable a => Identifier (Ident a) where
-    objectId (Ident id) = id
+-- instance Typeable a => Identifier (Ident a) where
+--     objectId (Ident id) = id
 
 instance Identifier Void where
     objectId _ = Left 0

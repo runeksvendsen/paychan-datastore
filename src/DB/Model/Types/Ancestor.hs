@@ -21,7 +21,7 @@ data WithAncestor anc a = WithAncestor (Ident anc) a
 
 instance (Identifier anc, HasKeyPath a) => HasKeyPath (WithAncestor anc a) where
     pathElems (WithAncestor anc i) =
-        identPathElem anc : pathElems i
+        unTagged (toPathElem anc) : pathElems i
 
 (<//>) :: Identifier ak
        => ak

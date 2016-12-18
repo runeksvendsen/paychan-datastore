@@ -73,10 +73,10 @@ paymentTest Pay.ChannelPairResult{..} = do
 queryTest :: Datastore ()
 queryTest = do
 --     now <- liftIO $ getCurrentTime
-    hey <- selectChannels $ ExpiringBefore (posixSecondsToUTCTime 2795556940)
-    liftIO $ print hey
-    liftIO $ putStrLn "##################### Notes ################"
-    DB.selectNotes undefined >>= liftIO . print
+--     hey <- selectChannels $ ExpiringBefore (posixSecondsToUTCTime 2795556940)
+--     liftIO $ print hey
+--     liftIO $ putStrLn "##################### Notes ################"
+--     DB.selectNotes undefined >>= liftIO . print
     DB.selectChannels (CoveringValue 100000) >>= liftIO . print
 
 defaultAppDatastoreEnv :: IO (Env '[AuthDatastore])

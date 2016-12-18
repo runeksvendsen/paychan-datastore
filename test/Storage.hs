@@ -30,20 +30,20 @@ projectId = "cloudstore-test"
 defaultPayCount :: Word
 defaultPayCount = 25
 
-defaultThreadCount :: Word
+defaultThreadCount :: Int
 defaultThreadCount = 5
 
 main :: IO ()
 main = do
     -- Command-line args
     args <- getArgs
-    let numThreads = if not (null args) then read (head args) :: Int else fromIntegral defaultThreadCount
-    let payCount = if length args > 1 then read (args !! 1) :: Word else fromIntegral defaultPayCount
-    -- Test data
-    tstDataLst <- M.replicateM numThreads $ genTestData payCount
+    let numThreads = if not (null args) then read (head args) :: Int else defaultThreadCount
+    let payCount = if length args > 1 then read (args !! 1) :: Word else defaultPayCount
     -- Env/conf
     storeEnv <- defaultAppDatastoreEnv
     let conf = DatastoreConf storeEnv projectId
+    -- Test data
+    tstDataLst <- M.replicateM numThreads $ genTestData payCount
     -- Go!
     putStrLn . unlines $ [ ""
                          , "Project ID:   " ++ cs projectId

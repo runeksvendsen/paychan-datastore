@@ -17,8 +17,8 @@ import           DB.Request                 (txLookup, entityQuery, getFirstResu
 import qualified Network.Google.Datastore.Types as DS
 
 
-type PayChanEnt = EntityAtKey RecvPayChan (EntityKey RecvPayChan)
-type NoteEnt    = EntityAtKey StoredNote (EntityKey StoredNote)
+type PayChanEnt = EntityWithAnc RecvPayChan (EntityKey RecvPayChan)
+type NoteEnt    = EntityWithAnc StoredNote (EntityKey StoredNote)
 
 txGetChanState :: HasScope '[AuthDatastore] ProjectsRunQuery
                => NamespaceId
@@ -48,7 +48,7 @@ txGetLastNote ns tx k = do
     res <- entityQuery (Just ns) (Just tx) (qMostRecentNote k)
     return $ getRes' (res :: Either String [(NoteEnt, EntityVersion) ])
   where
-    getRes' = fmap (\(EntityAtKey e _) -> e) . getFirstResult
+    getRes' = fmap (\(EntityWithAnc e _) -> e) . getFirstResult
 
 qMostRecentNote :: SendPubKey
                 -> AncestorQuery RecvPayChan (OfKind StoredNote (FilterProperty Bool Query))
@@ -78,7 +78,7 @@ withDBState ns sendPK f = do
             Left  _        -> return (applyResult, Nothing)
             Right newState -> do
                 updChan <- mkMutation ns
-                    (Update $ EntityAtKey newState (newState <//> root :: RootKey RecvPayChan))
+                    (Update $ EntityWithAnc newState root)
                 return ( applyResult, Just updChan )
     return $ case eitherRes of
         Right state -> Right state
@@ -117,15 +117,13 @@ mkNoteCommit :: NamespaceId
              -> Datastore DS.CommitRequest
 mkNoteCommit ns chan newNote prevNoteM = do
     updState    <- mkMutation ns
-        (Update $ EntityAtKey chan (chan <//> root :: RootKey RecvPayChan))
-    insNewNote  <- mkMutation ns $ Insert $ EntityAtKey newNote (mkNoteKey newNote)
+        (Update $ EntityWithAnc chan root)
+    insNewNote  <- mkMutation ns $ Insert $ EntityWithAnc newNote (getIdent chan)
     -- If there's previous note: update it so its is_tip = False
     updPrevNote <- maybe (return mempty) updateNote prevNoteM
     return $ updState <> insNewNote <> updPrevNote
   where
-    mkNoteKey :: StoredNote -> WithAncestor StoredNote (Ident RecvPayChan)
-    mkNoteKey n = n <//> getIdent chan
     updateNote n = mkMutation ns $ Update $
-        EntityAtKey (setMostRecentNote False n)
-            (mkNoteKey n)
+        EntityWithAnc (setMostRecentNote False n)
+            (getIdent chan)
 

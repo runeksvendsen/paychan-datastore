@@ -25,6 +25,6 @@ txLookup :: forall k e.
 txLookup ns tx key = do
     partId <- mkPartitionId ns
     res <- Tagged <$> sendReq' (projectsLookup $ reqWithTx partId)
-    return $ parseLookupRes (res :: Tagged e LookupResponse)    -- (EntityAtKey e (EntityKey t))
+    return $ parseLookupRes (res :: Tagged e LookupResponse)    -- (EntityWithAnc e (EntityKey t))
   where
     reqWithTx pid = atomically tx $ unTagged (mkLookup (Just pid) key)

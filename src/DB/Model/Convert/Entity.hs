@@ -43,7 +43,7 @@ encodeKeyPath partIdM k = Tagged $ DS.key
 -- encodeEntity :: forall a k.
 --                 IsEntity a k
 --              => Maybe DS.PartitionId
---              -> EntityAtKey a k
+--              -> EntityWithAnc a k
 --              -> Tagged a DS.Entity
 -- encodeEntity partIdM ent = Tagged $ DS.entity
 --     & DS.eKey ?~ unTagged (encodeKeyPath partIdM (a <//> anc))

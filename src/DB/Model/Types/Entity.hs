@@ -23,7 +23,7 @@ import qualified Data.HashMap.Strict    as Map
 data JustEntity e = JustEntity e
     deriving (Eq, Show)
 
-data EntityAtKey e k = EntityAtKey e k
+data EntityWithAnc e k = EntityWithAnc e k
     deriving (Eq, Show)
 
 
@@ -31,8 +31,8 @@ class IsEntity e where
     entEncode :: e -> (DS.EntityProperties, [DS.PathElement])
     entDecode :: (DS.EntityProperties, [DS.PathElement]) -> Either String e
 
-instance (Identifier a, HasProperties a, HasKeyPath k, Show k) => IsEntity (EntityAtKey a k) where
-    entEncode (EntityAtKey e k) =
+instance (Identifier a, HasProperties a, HasKeyPath k, Show k) => IsEntity (EntityWithAnc a k) where
+    entEncode (EntityWithAnc e k) =
         ( fst $ entEncode (JustEntity e)
         , pathElems k
 --         , identPathElem e : pathElems k
@@ -43,7 +43,7 @@ instance (Identifier a, HasProperties a, HasKeyPath k, Show k) => IsEntity (Enti
         if not (null leftovers) then
             Left $ "Key not fully parsed: " ++ show (k, leftovers, peL)
         else
-            Right (EntityAtKey ent k)
+            Right (EntityWithAnc ent k)
 
 instance HasProperties a => IsEntity (JustEntity a) where
     entEncode (JustEntity e) =

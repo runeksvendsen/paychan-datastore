@@ -17,7 +17,7 @@ insertChan :: -- DatastoreM m
            -> Datastore (Tagged RecvPayChan CommitResponse)
 insertChan nsId chan =
     mkMutation nsId
-        (Insert $ EntityAtKey chan (chan <//> root :: RootKey RecvPayChan)) >>=
+        (Insert $ EntityWithAnc chan root) >>=
             runReqWithTx . Tagged
 
 

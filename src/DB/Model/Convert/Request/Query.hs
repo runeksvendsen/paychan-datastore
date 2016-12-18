@@ -26,7 +26,7 @@ mkQueryReq nsM q = do
   where
     mkReq pid = DS.runQueryRequest
         & rqrPartitionId .~ Just pid
-        & rqrQuery ?~ show (mkQuery pid q) `trace` mkQuery pid q
+        & rqrQuery ?~ mkQuery pid q
 
 
 

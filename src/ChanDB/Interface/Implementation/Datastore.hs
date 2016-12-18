@@ -35,7 +35,13 @@ instance HasScope '[AuthDatastore] ProjectsRunQuery => ChanDB Datastore where
         _ <- removeChan clearingNS k
         return ()
 
---     selectChannels :: HasScope '[AuthDatastore] ProjectsRunQuery => DBQuery -> m [EntityKey RecvPayChan]
+    selectNotes _ =
+        keysOnlyQuery (Just clearingNS) q >>= failOnErr >>= getResult
+      where
+        q = OfKind (undefined :: StoredNote)
+            $ FilterProperty "most_recent_note" PFOEqual True
+              emptyQuery
+
     selectChannels GetAll =
         keysOnlyQuery (Just paychanNS) q >>= failOnErr >>= getResult
       where

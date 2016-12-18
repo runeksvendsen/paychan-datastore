@@ -69,7 +69,8 @@ queryTest = do
 --     now <- liftIO $ getCurrentTime
     hey <- selectChannels $ ExpiringBefore (posixSecondsToUTCTime 2795556940)
     liftIO $ print hey
-
+    liftIO $ putStrLn "##################### Notes ################"
+    DB.selectNotes undefined >>= liftIO . print
 
 defaultAppDatastoreEnv :: IO (Env '[AuthDatastore])
 defaultAppDatastoreEnv = do

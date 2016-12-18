@@ -29,6 +29,10 @@ class (Monad m, HasScope '[AuthDatastore] ProjectsRunQuery) => ChanDB m where
     selectChannels   :: DBQuery
                      -> m [EntityKey RecvPayChan]
 
+    -- | Select note keys by UUID
+    selectNotes      :: [UUID]
+                     -> m [EntityKey StoredNote]
+
     -- | Mark channel as in the process of being settled (unavailable for payment)
     settleBegin      :: [EntityKey RecvPayChan]
                      -> m [RecvPayChan]

@@ -53,7 +53,7 @@ main = do
 --         runPaymentTest conf tstData
     -- Query
     DB.runDatastore conf queryTest
-    putStrLn $ "\n\nDone! Executed " ++ show (sum numPayLst) ++ " payments."
+--     putStrLn $ "\n\nDone! Executed " ++ show (sum numPayLst) ++ " payments."
 
 
 runPaymentTest :: DatastoreConf -> Pay.ChannelPairResult -> IO Int

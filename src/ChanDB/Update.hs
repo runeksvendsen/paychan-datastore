@@ -20,7 +20,8 @@ import qualified Network.Google.Datastore.Types as DS
 type PayChanEnt = EntityAtKey RecvPayChan (EntityKey RecvPayChan)
 type NoteEnt    = EntityAtKey StoredNote (EntityKey StoredNote)
 
-txGetChanState :: NamespaceId
+txGetChanState :: HasScope '[AuthDatastore] ProjectsRunQuery
+               => NamespaceId
                -> TxId
                -> SendPubKey
                -> Datastore (Either UpdateErr RecvPayChan)
@@ -38,7 +39,8 @@ getRes r =
     \(JustEntity e) -> Right e
 
 
-txGetLastNote :: NamespaceId
+txGetLastNote ::  HasScope '[AuthDatastore] ProjectsRunQuery
+              => NamespaceId
               -> TxId
               -> SendPubKey
               -> Datastore (Maybe StoredNote)
@@ -60,7 +62,8 @@ qMostRecentNote k =
     payChanId = getIdentifier k :: Ident RecvPayChan
 
 
-withDBState :: NamespaceId
+withDBState :: HasScope '[AuthDatastore] ProjectsRunQuery
+            => NamespaceId
             -> SendPubKey
             -> (RecvPayChan -> Datastore (Either PayChanError RecvPayChan))
             -> Datastore (Either UpdateErr RecvPayChan)
@@ -74,14 +77,15 @@ withDBState ns sendPK f = do
         case applyResult of
             Left  _        -> return (applyResult, Nothing)
             Right newState -> do
-                updChan <- mkMutation ns (Update $ EntityAtKey newState root)
+                updChan <- mkMutation ns
+                    (Update $ EntityAtKey newState (newState <//> root :: RootKey RecvPayChan))
                 return ( applyResult, Just updChan )
     return $ case eitherRes of
         Right state -> Right state
         Left e -> Left e
 
-withDBStateNote ::
-               NamespaceId
+withDBStateNote :: HasScope '[AuthDatastore] ProjectsRunQuery
+            => NamespaceId
             -> SendPubKey
             -> (   RecvPayChan
                 -> Maybe StoredNote
@@ -111,14 +115,17 @@ mkNoteCommit :: NamespaceId
              -> StoredNote
              -> Maybe StoredNote
              -> Datastore DS.CommitRequest
-mkNoteCommit ns payChanState newNote prevNoteM = do
-    updState    <- mkMutation ns (Update $ EntityAtKey payChanState root)
-    insNewNote  <- mkMutation ns (Insert $ EntityAtKey newNote ancestor)
+mkNoteCommit ns chan newNote prevNoteM = do
+    updState    <- mkMutation ns
+        (Update $ EntityAtKey chan (chan <//> root :: RootKey RecvPayChan))
+    insNewNote  <- mkMutation ns $ Insert $ EntityAtKey newNote (mkNoteKey newNote)
     -- If there's previous note: update it so its is_tip = False
     updPrevNote <- maybe (return mempty) updateNote prevNoteM
     return $ updState <> insNewNote <> updPrevNote
   where
-    ancestor = getIdent payChanState
+    mkNoteKey :: StoredNote -> WithAncestor StoredNote (Ident RecvPayChan)
+    mkNoteKey n = n <//> getIdent chan
     updateNote n = mkMutation ns $ Update $
-        EntityAtKey (setMostRecentNote False n) ancestor
+        EntityAtKey (setMostRecentNote False n)
+            (mkNoteKey n)
 

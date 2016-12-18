@@ -77,7 +77,8 @@ genTestData numPayments = do
     let (chanPair, _) = Pay.runChanPair arbPair (tail amountList)
     return chanPair
 
-doPayment :: Pay.SendPubKey
+doPayment :: HasScope '[AuthDatastore] ProjectsRunQuery
+          => Pay.SendPubKey
           -> Pay.FullPayment
           -> Datastore (Either DB.UpdateErr RecvPayChan)
 doPayment key payment = do

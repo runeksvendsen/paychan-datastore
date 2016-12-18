@@ -1,3 +1,4 @@
+{-# LANGUAGE UndecidableInstances #-}
 module ChanDB.Interface.Implementation.Datastore where
 
 import Util
@@ -18,7 +19,7 @@ paychanNS :: NamespaceId
 paychanNS = "paychan"
 
 
-instance ChanDB Datastore where
+instance HasScope '[AuthDatastore] ProjectsRunQuery => ChanDB Datastore where
     runDB = runDatastore
     create rpc = do
         _ <- insertChan paychanNS  rpc

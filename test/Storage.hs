@@ -18,6 +18,10 @@ import qualified Network.HTTP.Conduit as HTTP
 import           Network.Google as Google
 import qualified Control.Concurrent.Async as Async
 
+-- Query
+import Data.Time                (getCurrentTime)
+import Data.Time.Clock.POSIX    (posixSecondsToUTCTime)
+
 
 projectId :: ProjectId
 projectId = "cloudstore-test"
@@ -57,7 +61,14 @@ paymentTest Pay.ChannelPairResult{..} = do
     -- Safe lookup + update/rollback
     res <- M.forM paymentList (doPayment sampleKey)
 --     _ <- DB.removeChan ns sampleKey
+    queryTest
     return $ length res
+
+queryTest :: Datastore ()
+queryTest = do
+--     now <- liftIO $ getCurrentTime
+    hey <- selectChannels $ ExpiringBefore (posixSecondsToUTCTime 2795556940)
+    liftIO $ print hey
 
 
 defaultAppDatastoreEnv :: IO (Env '[AuthDatastore])
@@ -92,14 +103,6 @@ doPayment key payment = do
         case Pay.recvPayment now pChan payment of
             Right (a,s) -> do
                 r@(Right (_,note)) <- mkNewNote (a,s) now noteM
-                let anc :: WithAncestor Void (Ident RecvPayChan)
-                    anc = key <//> getIdentifier key
---                     anc' :: WithAncestor Void (TheEntity RecvPayChan)
---                     anc' = root <//> TheEntity pChan
---                     anc'' :: WithAncestor SendPubKey (WithAncestor RecvPayChan (TheEntity StoredNote))
---                     anc'' = key <//> (key <//> TheEntity note)
-                liftIO $ print $ anc
-                liftIO $ print $ pathElems anc
                 return r
 
             Left e -> error ("recvPayment error :( " ++ show e) >> return (Left e)

@@ -31,10 +31,11 @@ class IsEntity e where
     entEncode :: e -> (DS.EntityProperties, [DS.PathElement])
     entDecode :: (DS.EntityProperties, [DS.PathElement]) -> Either String e
 
-instance (HasProperties a, HasKeyPath k, Show k) => IsEntity (EntityAtKey a k) where
+instance (Identifier a, HasProperties a, HasKeyPath k, Show k) => IsEntity (EntityAtKey a k) where
     entEncode (EntityAtKey e k) =
         ( fst $ entEncode (JustEntity e)
         , pathElems k
+--         , identPathElem e : pathElems k
         )
     entDecode (props, peL) =
         decodeEntProps (props ^. DS.epAddtional) >>= \ent ->

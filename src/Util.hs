@@ -10,7 +10,7 @@ module Util
 , liftIO
 , cs
 , fmapL
-, (<=<), (>=>)
+, (<=<), (>=>), forM
 , (<>), mempty, (</>)
 , trace
 , void
@@ -20,7 +20,7 @@ module Util
 where
 
 import           Types
-import           Control.Monad                  ((<=<), (>=>), void)
+import           Control.Monad                  ((<=<), (>=>), void, forM)
 import           Control.Monad.IO.Class         (liftIO)
 import           Data.Monoid                    ((<>), mempty)
 import           Control.Monad.Trans.Control    as Ctrl

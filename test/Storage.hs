@@ -37,13 +37,12 @@ main :: IO ()
 main = do
     -- Command-line args
     args <- getArgs
-    print args
     let numThreads = if not (null args) then read (head args) :: Int else fromIntegral defaultThreadCount
     let payCount = if length args > 1 then read (args !! 1) :: Word else fromIntegral defaultPayCount
     -- Test data
     tstDataLst <- M.replicateM numThreads $ genTestData payCount
     -- Env/conf
-    storeEnv   <- defaultAppDatastoreEnv
+    storeEnv <- defaultAppDatastoreEnv
     let conf = DatastoreConf storeEnv projectId
     -- Go!
     putStrLn . unlines $ [ ""
@@ -78,6 +77,7 @@ queryTest = do
     liftIO $ print hey
     liftIO $ putStrLn "##################### Notes ################"
     DB.selectNotes undefined >>= liftIO . print
+    DB.selectChannels (CoveringValue 100000) >>= liftIO . print
 
 defaultAppDatastoreEnv :: IO (Env '[AuthDatastore])
 defaultAppDatastoreEnv = do

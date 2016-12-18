@@ -25,9 +25,9 @@ instance (IsQuery q, Typeable k) => IsQuery (OfKind k q) where
 
 
 -- | Turns any 'Query' into a keys-only query
-data KeysOnlyQuery q = KeysOnly q
+data KeysOnly q = KeysOnly q
 
-instance IsQuery q => IsQuery (KeysOnlyQuery q) where
+instance IsQuery q => IsQuery (KeysOnly q) where
     mkQuery p (KeysOnly q) = mkQuery p q &
         -- Keys-only query:
         -- https://cloud.google.com/datastore/docs/concepts/queries#datastore_keys_only_query_gql

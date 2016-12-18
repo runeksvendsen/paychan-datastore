@@ -17,8 +17,8 @@ import           DB.Request                 (txLookup, entityQuery, getFirstResu
 import qualified Network.Google.Datastore.Types as DS
 
 
-type PayChanEnt = EntityWithAnc RecvPayChan (EntityKey RecvPayChan)
-type NoteEnt    = EntityWithAnc StoredNote (EntityKey StoredNote)
+type PayChanEnt = EntityWithAnc RecvPayChan Void
+type NoteEnt    = EntityWithAnc StoredNote (Ident RecvPayChan)
 
 txGetChanState :: HasScope '[AuthDatastore] ProjectsRunQuery
                => NamespaceId

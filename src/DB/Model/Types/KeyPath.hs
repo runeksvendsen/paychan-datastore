@@ -4,6 +4,7 @@ module DB.Model.Types.KeyPath
 , WithAncestor
 , EntityKey(..)
 , RootKey, VoidKey
+, rootIdent
 , (<//>)
 , module Idn
 )
@@ -78,8 +79,9 @@ instance Typeable a => HasKeyPath (EntityKey a) where
                     else
                         Left $ "Type mismatch. Found " ++ cs k ++ " expected " ++ cs typeStr
 
-
-
+rootIdent :: forall a. Typeable a => Ident a -> EntityKey a
+rootIdent = EntityKey . mkList . unTagged . toPathElem
+    where mkList a = [a]
 
 (<//>) :: Identifier a
        => a

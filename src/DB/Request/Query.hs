@@ -9,8 +9,23 @@ import DB.Model.Convert
 import Util
 
 
+queryBatchEntities ::
+    ( DatastoreM m
+    , IsQuery q
+    , HasProperties a
+    , HasScope '[AuthDatastore] ProjectsRunQuery
+    )
+    => Maybe NamespaceId
+    -> q
+    -> m [JustEntity a]
+queryBatchEntities ns q = do
+    res <- map parseEntity <$> queryBatchEnts ns q
+    if null (lefts res) then
+            return (rights res)
+        else
+            throw . InternalError $ "streamQueryBatch parse error: " ++ show (lefts res)
 
-streamQueryBatch ::
+queryBatchEnts ::
     ( DatastoreM m
     , IsQuery q
     , HasScope '[AuthDatastore] ProjectsRunQuery
@@ -18,7 +33,7 @@ streamQueryBatch ::
     => Maybe NamespaceId
     -> q
     -> m [Entity]
-streamQueryBatch nsM query = do
+queryBatchEnts nsM query = do
     res <- runQueryReq Nothing =<< mkQueryReq nsM query
     case parseRes res of
         Left e -> throw . InternalError $ "streamQueryBatch: " ++ e
@@ -28,7 +43,7 @@ streamQueryBatch nsM query = do
     parseRes :: RunQueryResponse -> Either String ([Entity], Maybe Cursor)
     parseRes = parseQueryBatchRes >=> parseBatchResults
     loop queryEnts curs =
-        streamQueryBatch nsM (StartAtCursor curs query) >>=
+        queryBatchEnts nsM (StartAtCursor curs query) >>=
         \entLstAccum -> return (queryEnts ++ entLstAccum)
 
 

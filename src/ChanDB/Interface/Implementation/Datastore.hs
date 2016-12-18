@@ -26,20 +26,25 @@ instance HasScope '[AuthDatastore] ProjectsRunQuery => ChanDB Datastore where
         _ <- insertChan clearingNS rpc
         return ()
 
-    paychanWithState k = withDBState paychanNS k
+    paychanWithState = withDBState paychanNS
 
-    noteWithState k = withDBStateNote clearingNS k
+    noteWithState = withDBStateNote clearingNS
 
     delete k = do
         _ <- removeChan paychanNS  k
         _ <- removeChan clearingNS k
         return ()
 
-    selectNotes uuidL =
-        keysOnlyQuery (Just clearingNS) q >>= failOnErr >>= getResult
+    selectNotes uuidL = do
+        keyL <- forM uuidL doQuery
+        liftIO $ print keyL
+        return $ concat keyL
       where
-        q = OfKind (undefined :: StoredNote)
-            $ FilterProperty "previous_note_id" PFOEqual uuidL
+        doQuery uid = keysOnlyQuery (Just clearingNS) (q uid) >>= failOnErr >>= getResult
+        q :: UUID -> OfKind StoredNote (FilterProperty UUID (KeysOnly Query))
+        q uid = OfKind (undefined :: StoredNote)
+            $ FilterProperty "previous_note_id" PFOEqual uid
+            $ KeysOnly
               emptyQuery
 
     selectChannels GetAll =
@@ -56,13 +61,23 @@ instance HasScope '[AuthDatastore] ProjectsRunQuery => ChanDB Datastore where
             $ FilterProperty "metadata.mdChannelStatus" PFOEqual ("ReadyForPayment" :: Text)
             $ OrderBy "state.pcsParameters.cpLockTime" Ascending emptyQuery
 
-    selectChannels (CoveringValue _) = do
---         let getChan :: (JustEntity RecvPayChan, EntityVersion) -> RecvPayChan
---             getChan ((chan,_),_) = chan
-        resL <- failOnErr =<< entityQuery (Just paychanNS) Nothing q
-        liftIO $ print (map fst resL :: [JustEntity RecvPayChan])
-        error "STUB #2"
+    selectChannels (CoveringValue val) = do
+        resL <- queryBatchEntities (Just paychanNS) q
+        chanL <- case collect [] resL of
+            Left v -> return $ Left $ "Not enough available value. Have: " ++
+                show v ++ " need: " ++ show val
+            Right chL -> return $ Right chL
+        let retL = map (rootIdent . getIdent) <$> chanL :: Either String [EntityKey RecvPayChan]
+        liftIO $ print (resL :: [JustEntity RecvPayChan])
+        either (throw . InternalError) return retL
       where
+        collect accum [] = Left $ map valueToMe accum
+        collect accum (JustEntity chan:rem) =
+            if sum (map valueToMe accum) >= val then
+                    Right accum
+                else
+                    collect (chan : accum) rem
+
         q =   OfKind (undefined :: RecvPayChan)
             $ FilterProperty "metadata.mdChannelStatus" PFOEqual ("ReadyForPayment" :: Text)
             $ OrderBy "metadata.mdValueReceived" Descending emptyQuery
@@ -74,5 +89,12 @@ instance HasScope '[AuthDatastore] ProjectsRunQuery => ChanDB Datastore where
 failOnErr :: Monad m => Either String b -> m b
 failOnErr = either (throw . InternalError) return
 
+failOnErr' :: Either String b -> b
+failOnErr' = either (throw . InternalError) id
+
 getResult :: Monad m => [ (EntityKey a, EntityVersion) ] -> m [ EntityKey a ]
-getResult = return . map fst
+getResult = return . getResult'
+
+getResult' :: [ (EntityKey a, EntityVersion) ] -> [ EntityKey a ]
+getResult' = map fst
+

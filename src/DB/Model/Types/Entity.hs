@@ -39,7 +39,7 @@ instance (Identifier a, HasProperties a, HasKeyPath k, Show k) => IsEntity (Enti
         )
     entDecode (props, peL) =
         decodeEntProps (props ^. DS.epAddtional) >>= \ent ->
-        parseElems peL >>= \(k, leftovers) ->
+        parseElems (init peL) >>= \(k, leftovers) ->
         if not (null leftovers) then
             Left $ "Key not fully parsed: " ++ show (k, leftovers, peL)
         else

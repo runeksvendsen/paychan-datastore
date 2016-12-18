@@ -10,6 +10,7 @@ module ChanDB.Types
 , Note
 , RecvPayChan
 , Pay.SendPubKey
+, Pay.PaymentChannel(..)
 , PromissoryNote, StoredNote, UUID
 , Pay.PayChanError
 , Pay.BitcoinAmount

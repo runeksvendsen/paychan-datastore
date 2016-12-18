@@ -7,6 +7,7 @@ module DB.Model.Convert.Entity
 )
 where
 
+import DB.Model.Types.KeyPath
 import DB.Model.Types.Entity
 import DB.Model.Convert.Identifier
 import Types
@@ -15,45 +16,42 @@ import qualified Data.HashMap.Strict        as Map
 import qualified Network.Google.Datastore.Types   as DS
 
 
-encodeKey :: forall a anc. HasAncestor a anc
+-- encodeKey :: forall a anc. HasAncestor a anc
+--           => Maybe DS.PartitionId
+--           -> Ident anc
+--           -> Ident a
+--           -> Tagged a DS.Key
+-- encodeKey partIdM anc a = Tagged $ unTagged bareKey & DS.kPartitionId .~ partIdM
+--     where bareKey = identKey anc </> identKey a
+
+
+-- parseKey :: forall a k. HasKeyPath k => Tagged a DS.Key -> Either String k
+-- parseKey a = case unTagged a ^. DS.kPath of
+--     [idn]       -> (,) (Ident $ Left 0) <$> parsePathElem (Tagged idn)
+--     [anc , idn] -> (,) <$> parsePathElem (Tagged anc) <*> parsePathElem (Tagged idn)
+--     path        -> Left $ "parseKey: Unexpected PathElements: " ++ show path
+
+
+encodeKeyPath :: HasKeyPath k
           => Maybe DS.PartitionId
-          -> Ident anc
-          -> Ident a
+          -> k
           -> Tagged a DS.Key
-encodeKey partIdM anc a = Tagged $ unTagged bareKey & DS.kPartitionId .~ partIdM
-    where bareKey = identKey anc </> identKey a
+encodeKeyPath partIdM k = Tagged $ DS.key
+    & DS.kPartitionId .~ partIdM
+    & DS.kPath .~ reverse (pathElems k)
 
-parseKey :: forall a anc. HasAncestor a anc => Tagged a DS.Key -> Either String (Ident anc, Ident a)
-parseKey a = case unTagged a ^. DS.kPath of
-    [idn]       -> (,) (Ident $ Left 0) <$> parsePathElem (Tagged idn)
-    [anc , idn] -> (,) <$> parsePathElem (Tagged anc) <*> parsePathElem (Tagged idn)
-    path        -> Left $ "parseKey: Unexpected PathElements: " ++ show path
+-- encodeEntity :: forall a k.
+--                 IsEntity a k
+--              => Maybe DS.PartitionId
+--              -> EntityAtKey a k
+--              -> Tagged a DS.Entity
+-- encodeEntity partIdM ent = Tagged $ DS.entity
+--     & DS.eKey ?~ unTagged (encodeKeyPath partIdM (a <//> anc))
+--     & DS.eProperties ?~ DS.entityProperties props
+--         where props = jsonToDS (excludeKeys a) <$> encodeProps a
+--
 
-encodeEntity :: forall a anc.
-                HasAncestor a anc
-             => Maybe DS.PartitionId
-             -> Ident anc
-             -> a
-             -> Tagged a DS.Entity
-encodeEntity partIdM anc a = Tagged $ DS.entity
-    & DS.eKey ?~ unTagged (encodeKey partIdM anc (getIdent a))
-    & DS.eProperties ?~ DS.entityProperties props
-        where props = jsonToDS (excludeKeys a) <$> properties a
 
-parseEntity :: forall a anc.
-               HasAncestor a anc
-            => Tagged a DS.Entity
-            -> Either String (a, Ident anc)
-parseEntity entT = fmapL ("parseEntity:" ++) $ do
-    nKey <- getNativeKey entT
-    (ancIdent, _) <- parseKey nKey
-    a <- decodeProperties (Tagged $ props entT)
-    return (a, ancIdent)
-  where
-    getNativeKey eT = Tagged <$> nativeKeyE eT :: Either String (Tagged a DS.Key)
-    nativeKeyE eT = maybe (Left "No key in Entity") Right (unTagged eT ^. DS.eKey)
-    -- Properties
-    props eT = fromMaybe Map.empty $ ( ^. DS.epAddtional ) <$> unTagged eT ^. DS.eProperties
 
 
 

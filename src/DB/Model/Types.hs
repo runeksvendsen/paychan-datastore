@@ -16,6 +16,8 @@ import           Data.Void                        (Void)
 
 type ProjectId = T.Text
 type NamespaceId = T.Text
+type Name = T.Text
+type Kind = T.Text
 
 type AuthCloudPlatform = "https://www.googleapis.com/auth/cloud-platform"
 type AuthDatastore = "https://www.googleapis.com/auth/datastore"

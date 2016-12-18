@@ -6,20 +6,20 @@ import DB.Model.Convert.Value.Native
 import DB.Model.Convert.Identifier
 
 
--- | Create a Datastore query from an arbitrary type
+-- | Something that represents a Datastore query
 class IsQuery a where
     mkQuery :: PartitionId  -- ^ The 'PartitionId' in which the query will execute
-            -> a            -- ^ The query type
-            -> Query        -- ^ Actual 'Query'
+            -> a            -- ^ The query
+            -> Query        -- ^ Datastore 'Query'
 
 instance IsQuery Query where
     mkQuery _ = id
 
 
 -- | A query of specified kind ('Ident')
-data OfKind k q = OfKind (Ident k) q
+data OfKind k q = OfKind k q
 
-instance (IsQuery q, Identifier k) => IsQuery (OfKind k q) where
+instance (IsQuery q, Typeable k) => IsQuery (OfKind k q) where
     mkQuery p (OfKind k q) =
         mkQuery p q & qKind .~ ( gqlKind k : mkQuery p q ^. qKind )
 
@@ -38,7 +38,7 @@ instance IsQuery q => IsQuery (KeysOnlyQuery q) where
 --  whereas global queries are eventually consistent.
 data AncestorQuery anc q = AncestorQuery (Ident anc) q
 
-instance (IsQuery q, Identifier anc) => IsQuery (AncestorQuery anc q) where
+instance (IsQuery q, Typeable anc) => IsQuery (AncestorQuery anc q) where
     mkQuery p (AncestorQuery anc q) =
         addFilter p (mkQuery p q) propFilter
       where

@@ -15,17 +15,20 @@ insertChan :: -- DatastoreM m
               NamespaceId
            -> RecvPayChan
            -> Datastore (Tagged RecvPayChan CommitResponse)
-insertChan nsId chan = do
-    partId <- mkPartitionId nsId
-    runReqWithTx (mkInsert (Just partId) root chan)
+insertChan nsId chan =
+    mkMutation nsId (Insert $ EntityAtKey chan root) >>= runReqWithTx . Tagged
+
 
 removeChan :: -- DatastoreM m
               NamespaceId
            -> SendPubKey
            -> Datastore (Tagged RecvPayChan CommitResponse)
 removeChan nsId key = do
+    let fullKey = key <//> root :: RootKey RecvPayChan
     partId <- mkPartitionId nsId
-    runReqWithTx $ mkDelete (Just partId) root (getIdentifier key)
+    runReqWithTx $ mkDelete
+        (Just partId)
+        fullKey
 
 
 runReqWithTx :: -- forall a m.

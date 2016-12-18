@@ -20,8 +20,8 @@ streamQueryBatch ::
     -> m [Entity]
 streamQueryBatch nsM query = do
     res <- runQueryReq Nothing =<< mkQueryReq nsM query
-    case parseRes (unTagged res) of
-        Left e -> throw . InternalError $ "openChannelKeys: " ++ e
+    case parseRes res of
+        Left e -> throw . InternalError $ "streamQueryBatch: " ++ e
         Right (queryEnts, Nothing)   -> return queryEnts
         Right (queryEnts, Just curs) -> loop queryEnts curs
   where
@@ -31,8 +31,6 @@ streamQueryBatch nsM query = do
         streamQueryBatch nsM (StartAtCursor curs query) >>=
         \entLstAccum -> return (queryEnts ++ entLstAccum)
 
-openChannelsQuery = undefined
-
 
 runQueryReq ::
             ( DatastoreM m
@@ -40,50 +38,38 @@ runQueryReq ::
             )
          => Maybe TxId
          -> Tagged a RunQueryRequest
-         -> m ( Tagged (a,anc) RunQueryResponse )
-runQueryReq txM req =
-    Tagged <$> sendReq' (projectsRunQuery txReq)
+         -> m RunQueryResponse
+runQueryReq txM reqT =
+    sendReq' (projectsRunQuery txReq)
   where
-    txReq = maybe uReq (`atomically` uReq) txM
-    uReq = unTagged req
+    txReq = maybe req (`atomically` req) txM
+    req = unTagged reqT
 
-
-txQuery :: forall q a anc.
+entityQuery :: forall q e.
            ( IsQuery q
-           , HasAncestor a anc
-           , HasScope '[AuthDatastore] ProjectsRunQuery )
+           , IsEntity e
+           , HasScope '[AuthDatastore] ProjectsRunQuery
+           )
           => Maybe NamespaceId
-          -> TxId
+          -> Maybe TxId
           -> q
-          -> Datastore ( Either String [ ((a, Ident anc), EntityVersion) ] )
-txQuery nsM tx q = do
+          -> Datastore ( Either String [(e, EntityVersion)] )
+entityQuery nsM txM q = do
     req <- mkQueryReq nsM q
-    parseQueryRes <$> runQueryReq (Just tx) req
+    parseQueryRes <$> runQueryReq txM req
 
-entityQuery :: forall q a anc.
-           ( IsQuery q
-           , HasAncestor a anc
-           , HasScope '[AuthDatastore] ProjectsRunQuery )
-          => Maybe NamespaceId
-          -> q
-          -> Datastore ( Either String [ ((a, Ident anc), EntityVersion) ] )
-entityQuery nsM q = do
-    req <- mkQueryReq nsM q
-    parseQueryRes <$> runQueryReq Nothing req
-
-
-keysOnlyQuery :: forall q a anc.
+keysOnlyQuery :: forall q a.
                ( IsQuery q
-               , HasAncestor a anc
-               , HasScope '[AuthDatastore] ProjectsRunQuery )
+               , Typeable a
+               , HasScope '[AuthDatastore] ProjectsRunQuery
+               )
               => Maybe NamespaceId
               -> q
-              -> Datastore ( Either String [ (Ident a, Ident anc) ] )
+              -> Datastore ( Either String [(EntityKey a, EntityVersion)] )
 keysOnlyQuery nsM q = do
     req <- mkQueryReq nsM q
-    identE <- parseQueryResKeys <$> runQueryReq Nothing req
-    let rmVer (i,a,_) = (i,a)
-    return $ fmap (map rmVer) identE
+    parseQueryResKeys <$> runQueryReq Nothing req
+
 
 
 

@@ -3,7 +3,6 @@ module DB.Request
   module Lookup
 , module Query
 , module Util
-, module DB.Request
 
 )
 where

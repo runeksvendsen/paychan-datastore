@@ -1,3 +1,4 @@
+{-# LANGUAGE UndecidableInstances, UndecidableSuperClasses #-}
 module ChanDB.Interface.Spec
 (
   ChanDB(..)
@@ -9,7 +10,7 @@ import ChanDB.Types
 
 
 -- | Database interface
-class Monad m => ChanDB m where
+class (Monad m, HasScope '[AuthDatastore] ProjectsRunQuery) => ChanDB m where
     -- | Create new state for both PayChanServer and ClearingServer
     create           :: RecvPayChan
                      -> m ()
@@ -26,10 +27,10 @@ class Monad m => ChanDB m where
 
     -- | Select channel keys by properties
     selectChannels   :: DBQuery
-                     -> m [Ident RecvPayChan]
+                     -> m [EntityKey RecvPayChan]
 
     -- | Mark channel as in the process of being settled (unavailable for payment)
-    settleBegin      :: [Ident RecvPayChan]
+    settleBegin      :: [EntityKey RecvPayChan]
                      -> m [RecvPayChan]
 
     -- | Mark channel as settled (closed or again available for payment, depending on client change address).

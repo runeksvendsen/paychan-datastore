@@ -19,7 +19,7 @@ import           Util
 import           DB.Model.Types as Export
 import           DB.Model.Types.Entity
 import           DB.Model.Types.Request
-import           DB.Model.Types.Ancestor as Ancestor
+import           DB.Model.Types.KeyPath as Ancestor
 import           Data.Tagged (Tagged(..))
 
 import Network.Google.Datastore as Datastore hiding (key)

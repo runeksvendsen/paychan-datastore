@@ -6,7 +6,9 @@ module DB.Model.Convert.Properties
   -- * Util
   jsonToDS
 , jsonFromDS
+, convertWithIndex
 , decodeProperties
+, decodeEntProps
   -- * Type
 , EntityProps
 , NoIndexKey
@@ -96,9 +98,11 @@ jsonFromDS val =
 
 
 decodeProperties :: forall a. JSON.FromJSON a => Tagged a EntityProps -> Either String a
-decodeProperties propsT =
-    case JSON.fromJSON . JSON.Object $ jsonFromDS <$> unTagged propsT of
+decodeProperties propsT = decodeEntProps (unTagged propsT)
+
+decodeEntProps :: forall a. JSON.FromJSON a => EntityProps -> Either String a
+decodeEntProps props =
+    case JSON.fromJSON . JSON.Object $ jsonFromDS <$> props of
         JSON.Success a -> Right a
         JSON.Error e        -> Left e
-
 

@@ -15,12 +15,18 @@ data Ident a = Ident
     { iId       :: Either Int64 Text
     } deriving (Eq, Typeable)
 
--- | Identifier for Datastore objects.
--- Two objects of type 'a' are considered equal if they return the same 'objectId'
--- So if "objectId a1 == objectId a2" then "upsert a2" will overwrite "a1".
--- See: https://cloud.google.com/datastore/docs/concepts/entities#assigning_identifiers
+-- class Typeable a => IsKind a where
+--     kindStr :: a -> Text
+--     kindStr = objectType
+
 class Typeable a => Identifier a where
     objectId    :: a -> Either Int64 Text   -- ^ Unique object identifier
+
+instance Typeable a => Identifier (Ident a) where
+    objectId (Ident i) = i
+
+parseIdent :: Typeable a => DS.PathElement -> Either String (Ident a)
+parseIdent = parsePathElem'
 
 getIdent :: forall a. Identifier a => a -> Ident a
 getIdent a = Ident (objectId a)
@@ -39,30 +45,47 @@ castIdent :: Ident a -> Ident b
 castIdent (Ident i) = Ident i
 
 
-type Root = Ident Void
-root :: Root
-root = Ident $ Left 0
+root :: Void
+root = undefined
 
+-- | The only ancestor of a root entity
+-- root :: Ident Void
+-- root = Ident (Left 0)
 
--- instance Typeable a => Identifier (Ident a) where
---     objectId (Ident id) = id
+-- instance Identifier Void where
+--     objectId _ = Left 0
 
-instance Identifier Void where
-    objectId _ = Left 0
-
-instance Identifier (Either Int64 Text) where
-    objectId = id
+-- instance Identifier (Either Int64 Text) where
+--     objectId = id
 
 encodeHex :: Bin.Serialize a => a -> Text
 encodeHex = cs . B16.encode . Bin.encode
 
-instance Identifier i => Show (Ident i) where
-    show (Ident i)
-        | objectId i == Left 0 = "/"
-        | otherwise = typeStr ++ ":" ++ either show show (objectId i)
-      where typeStr = show (typeOf (undefined :: i))
+instance Typeable a => Show (Ident a) where
+    show (Ident e)
+        | e == Left 0 = "/"
+        | otherwise = typeStr ++ ":" ++ either show show e
+      where typeStr = show (typeOf (undefined :: a))
 
 
 -- ^ Get type identifier from an object instance.
 objectType :: Typeable a => a -> Text
 objectType = cs . show . typeOf
+
+
+parsePathElem' :: forall a. Typeable a => DS.PathElement -> Either String (Ident a)
+parsePathElem' pe = fmapL ("PathElement: " ++) $
+    parseKind >>= check >>
+        -- If a number ID is present use that, else use name.
+        either (const identNameE) Right identNumE
+    where identNumE  = parseNum  >>= Right . Ident . Left
+          identNameE = parseName >>= Right . Ident . Right
+          -- Parse fields
+          parseNum  = labelErr "Missing ID" $ pe ^. DS.peId
+          parseName = labelErr "Missing name" $ pe ^. DS.peName
+          -- Type/kind check
+          labelErr e = maybe (Left (e :: String)) Right
+          parseKind = labelErr "Missing kind" $ pe ^. DS.peKind
+          kindStr = cs $ show (typeOf (undefined :: a))
+          check k = if k == kindStr then Right k else
+                    Left $ "Type mismatch. Found " ++ cs k ++ " expected " ++ cs kindStr

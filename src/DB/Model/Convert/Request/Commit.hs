@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, RankNTypes #-}
 module DB.Model.Convert.Request.Commit where
 
 import DB.Model.Types.Entity
@@ -9,24 +9,49 @@ import Util
 import qualified Network.Google.Datastore as DS
 
 
-
-mkInsert :: forall a anc. HasAncestor a anc => Maybe PartitionId -> Ident anc -> a -> Tagged a DS.CommitRequest
-mkInsert partM anc a = Tagged $ mutationReq
-    [ mutation & mInsert ?~ unTagged (encodeEntity partM anc a :: Tagged a DS.Entity) ]
-
-mkUpsert :: forall a anc. HasAncestor a anc => Maybe PartitionId -> Ident anc -> a -> Tagged a DS.CommitRequest
-mkUpsert partM anc a = Tagged $ mutationReq
-    [ mutation & mUpsert ?~ unTagged (encodeEntity partM anc a :: Tagged a DS.Entity) ]
-
-mkUpdate :: forall a anc. HasAncestor a anc => Maybe PartitionId -> Ident anc -> a -> Tagged a DS.CommitRequest
-mkUpdate partM anc a = Tagged $ mutationReq
-    [ mutation & mUpdate ?~ unTagged (encodeEntity partM anc a :: Tagged a DS.Entity) ]
-
-mkDelete :: forall a anc. HasAncestor a anc => Maybe PartitionId -> Ident anc -> Ident a -> Tagged a DS.CommitRequest
-mkDelete partM anc a = Tagged $ mutationReq
-    [ mutation & mDelete ?~ unTagged (encodeKey partM anc a :: Tagged a DS.Key)]
+data Insert a = Insert a
+data Upsert a = Upsert a
+data Update a = Update a
 
 
+class HasMutLens mut where
+    getLens :: mut -> Lens' Mutation (Maybe Entity)
+
+instance HasMutLens (Insert a) where
+    getLens = const mInsert
+
+instance HasMutLens (Upsert a) where
+    getLens = const mUpsert
+
+instance HasMutLens (Update a) where
+    getLens = const mUpdate
+
+
+class (HasMutLens mut, IsEntity b) => IsMutation mut b | mut -> b where
+    getEnt :: mut -> b
+
+instance IsEntity a => IsMutation (Insert a) a where
+    getEnt (Insert a) = a
+
+instance IsEntity a => IsMutation (Upsert a) a where
+    getEnt (Upsert a) = a
+
+instance IsEntity a => IsMutation (Update a) a where
+    getEnt (Update a) = a
+
+
+mkMutation :: IsMutation mut b
+           => NamespaceId
+           -> mut
+           -> Datastore DS.CommitRequest
+mkMutation ns m = do
+    partId <- mkPartitionId ns
+    return $ mutationReq
+        [ mutation & getLens m ?~ mkEntity (Just partId) (getEnt m) ]
+
+mkDelete :: HasKeyPath k => Maybe PartitionId -> k -> Tagged a DS.CommitRequest
+mkDelete partM k = Tagged $ mutationReq
+    [ mutation & mDelete ?~ unTagged (encodeKeyPath partM k :: Tagged a DS.Key)]
 
 
 instance Monoid CommitRequest where
@@ -38,6 +63,7 @@ instance Monoid CommitRequest where
 mutationReq :: [Mutation] -> CommitRequest
 mutationReq mutL = commitRequest
     & crMutations .~ mutL
+
 
 -- -- |Check entity version.
 -- checkCommResponse :: EntityVersion -> CommitResponse -> UpdateResult

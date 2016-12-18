@@ -31,15 +31,15 @@ gqlSelectString selection _ =
     where kindStr = show (typeOf (undefined :: a))
 
 -- | Used when referencing kinds in a 'Query'.
-gqlKind :: forall a. Identifier a => Ident a -> DS.KindExpression
+gqlKind :: forall a. Typeable a => a -> DS.KindExpression
 gqlKind _ =
     DS.kindExpression & DS.keName ?~ cs kindStr
         where kindStr = show (typeOf (undefined :: a))
 
 
-identKey :: forall a. Identifier a => Ident a -> Tagged a DS.Key
+identKey :: forall a. Typeable a => Ident a -> Tagged a DS.Key
 identKey idn@(Ident i)
-    | objectId i == Left 0 = Tagged mempty
+    | i == Left 0 = Tagged mempty
     | otherwise = Tagged $ DS.key & DS.kPath .~ [ unTagged (toPathElem idn :: Tagged a DS.PathElement) ]
 
 instance Monoid DS.Key where

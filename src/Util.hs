@@ -3,8 +3,9 @@ module Util
 (
   module Types
 , module Control.Lens
+, module Data.Maybe
 , Except.throw
-, fromMaybe, isJust, isNothing, fromJust
+-- , fromMaybe, isJust, isNothing, fromJust, listToMaybe
 , lefts, rights
 , liftIO
 , cs
@@ -27,7 +28,7 @@ import           Control.Monad.Trans.Control    as Ctrl
 import qualified Control.Exception as Except
 
 import           Control.Lens                   hiding (op)
-import           Data.Maybe                     (fromMaybe, isJust, isNothing, fromJust)
+import           Data.Maybe                     -- (listToMaybe, fromMaybe, isJust, isNothing, fromJust)
 import           Data.Either                    (lefts, rights)
 import           Data.String.Conversions        (cs)
 import           Data.EitherR                   (fmapL)

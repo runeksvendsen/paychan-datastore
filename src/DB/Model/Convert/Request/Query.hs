@@ -30,29 +30,32 @@ mkQueryReq nsM q = do
 
 
 
-parseQueryRes :: forall a anc.
-                 HasAncestor a anc
-              => Tagged (a,anc) DS.RunQueryResponse
-              -> Either String [ ((a, Ident anc), EntityVersion) ]
-parseQueryRes queryResT = fmapL ("parseQueryRes: " ++) $
+parseQueryRes :: IsEntity e
+              => DS.RunQueryResponse
+              -> Either String [ (e, EntityVersion) ]
+parseQueryRes queryRes = fmapL ("parseQueryRes: " ++) $
     if not (null parseErrors) then Left $ head parseErrors else Right $ rights parseRes
   where
     parseErrors = lefts parseRes
     parseRes = map (parseEntityResult . Tagged) entRes
     entRes = maybe (internalError "QueryResultBatch must always be present.") (^. DS.qrbEntityResults)
-            (unTagged queryResT ^. rBatch)
+            (queryRes ^. rBatch)
 
-parseQueryResKeys :: forall a anc.
-                 HasAncestor a anc
-              => Tagged (a,anc) DS.RunQueryResponse
-              -> Either String [ (Ident a, Ident anc, EntityVersion) ]
-parseQueryResKeys queryResT = fmapL ("parseQueryResKeys: " ++) $
-    if not (null parseErrors) then Left $ head parseErrors else Right $ rights parseRes
+parseQueryResKeys :: HasKeyPath k
+              => DS.RunQueryResponse
+              -> Either String [ (k, EntityVersion) ]
+parseQueryResKeys queryRes = fmapL ("parseQueryResKeys: " ++) $
+    parseRes >>= \parseResL ->
+        if not (null $ lefts parseResL) then
+            Left $ head (lefts parseResL)
+        else
+            Right $ rights parseResL
   where
-    parseErrors = lefts parseRes
-    parseRes = map (parseEntityResultKey . Tagged) entRes
-    entRes = maybe (internalError "QueryResultBatch must always be present.") (^. DS.qrbEntityResults)
-            (unTagged queryResT ^. rBatch)
+    parseRes = entRes queryRes >>= \entL -> Right $ map parseEntityResultKey entL
+    entRes er = maybe
+        (Left "Missing QueryResultBatch")
+        (Right . (^. DS.qrbEntityResults))
+        (er ^. rBatch)
 
 
 parseQueryBatchRes :: RunQueryResponse -> Either String QueryResultBatch

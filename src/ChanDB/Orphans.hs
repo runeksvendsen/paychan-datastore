@@ -8,6 +8,12 @@ import           Data.Void                        (Void)
 import PromissoryNote                             (PromissoryNote, StoredNote, UUID)
 
 
+-- New stuff
+-- instance IsKind SendPubKey
+-- instance IsKind RecvPayChan
+-- instance IsKind StoredNote
+-- instance IsKind PromissoryNote
+
 -- Identifiers
 instance Identifier SendPubKey
     where objectId = Right . encodeHex
@@ -29,24 +35,21 @@ instance Identifier StoredNote
 instance HasIdentifier RecvPayChan SendPubKey
 instance HasIdentifier PromissoryNote UUID
 
-instance IsEntity RecvPayChan
-instance IsEntity PromissoryNote
-instance IsEntity StoredNote
+-- instance IsEntity RecvPayChan
+-- instance IsEntity PromissoryNote
+-- instance IsEntity StoredNote
 
-instance HasAncestor RecvPayChan Void
-instance HasAncestor PromissoryNote RecvPayChan
-instance HasAncestor StoredNote RecvPayChan
 
 
 instance HasProperties RecvPayChan
-    where properties = (\(JSON.Object o) -> o) . JSON.toJSON
+    where encodeProps = (\(JSON.Object o) -> o) . JSON.toJSON
           excludeKeys _ = ["pcsPaymentSignature"]
 
 instance HasProperties PromissoryNote
-    where properties = (\(JSON.Object o) -> o) . JSON.toJSON
+    where encodeProps = (\(JSON.Object o) -> o) . JSON.toJSON
           excludeKeys _ = ["server_sig"]
 
 instance HasProperties StoredNote
-    where properties = (\(JSON.Object o) -> o) . JSON.toJSON
+    where encodeProps = (\(JSON.Object o) -> o) . JSON.toJSON
           excludeKeys _ = ["server_sig"]
 

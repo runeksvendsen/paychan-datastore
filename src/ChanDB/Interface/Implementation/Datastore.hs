@@ -25,36 +25,38 @@ instance ChanDB Datastore where
         _ <- insertChan clearingNS rpc
         return ()
 
-    paychanWithState k f = withDBState paychanNS k f
+    paychanWithState k = withDBState paychanNS k
 
-    noteWithState k f = withDBStateNote clearingNS k f
+    noteWithState k = withDBStateNote clearingNS k
 
     delete k = do
         _ <- removeChan paychanNS  k
         _ <- removeChan clearingNS k
         return ()
 
+--     selectChannels :: HasScope '[AuthDatastore] ProjectsRunQuery => DBQuery -> m [EntityKey RecvPayChan]
     selectChannels GetAll =
         keysOnlyQuery (Just paychanNS) q >>= failOnErr >>= getResult
       where
-        q = OfKind (undefined :: Ident RecvPayChan) emptyQuery
+        q = OfKind (undefined :: RecvPayChan) emptyQuery
 
     selectChannels (ExpiringBefore t) =
         keysOnlyQuery (Just paychanNS) q >>= failOnErr >>= getResult
       where
         timestamp = round $ utcTimeToPOSIXSeconds t :: Int64
-        q =   OfKind (undefined :: Ident RecvPayChan)
+        q =   OfKind (undefined :: RecvPayChan)
             $ FilterProperty "state.pcsParameters.cpLockTime" PFOLessThanOrEqual timestamp
             $ FilterProperty "metadata.mdChannelStatus" PFOEqual ("ReadyForPayment" :: Text)
             $ OrderBy "state.pcsParameters.cpLockTime" Ascending emptyQuery
 
     selectChannels (CoveringValue _) = do
-        let getChan :: ((RecvPayChan, Ident Void), EntityVersion) -> RecvPayChan
-            getChan ((chan,_),_) = chan
-        resL <- failOnErr =<< entityQuery (Just paychanNS) q
-        return $ map (getIdent . getChan) resL
+--         let getChan :: (JustEntity RecvPayChan, EntityVersion) -> RecvPayChan
+--             getChan ((chan,_),_) = chan
+        resL <- failOnErr =<< entityQuery (Just paychanNS) Nothing q
+        liftIO $ print (map fst resL :: [JustEntity RecvPayChan])
+        error "STUB #2"
       where
-        q =   OfKind (undefined :: Ident RecvPayChan)
+        q =   OfKind (undefined :: RecvPayChan)
             $ FilterProperty "metadata.mdChannelStatus" PFOEqual ("ReadyForPayment" :: Text)
             $ OrderBy "metadata.mdValueReceived" Descending emptyQuery
 
@@ -65,5 +67,5 @@ instance ChanDB Datastore where
 failOnErr :: Monad m => Either String b -> m b
 failOnErr = either (throw . InternalError) return
 
-getResult :: Monad m => [ (Ident RecvPayChan, Ident Void) ] -> m [ Ident RecvPayChan ]
+getResult :: Monad m => [ (EntityKey a, EntityVersion) ] -> m [ EntityKey a ]
 getResult = return . map fst

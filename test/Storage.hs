@@ -46,6 +46,7 @@ main = do
                          , "Pay    count: " ++ show count ++ " (per thread)" ]
     numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->
         runPaymentTest conf tstData
+    DB.runDatastore conf queryTest
     putStrLn $ "\n\nDone! Executed " ++ show (sum numPayLst) ++ " payments."
 
 
@@ -61,7 +62,6 @@ paymentTest Pay.ChannelPairResult{..} = do
     -- Safe lookup + update/rollback
     res <- M.forM paymentList (doPayment sampleKey)
 --     _ <- DB.removeChan ns sampleKey
-    queryTest
     return $ length res
 
 queryTest :: Datastore ()

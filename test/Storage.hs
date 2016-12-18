@@ -38,7 +38,7 @@ main = do
     -- Command-line args
     args <- getArgs
     let numThreads = if not (null args) then read (head args) :: Int else fromIntegral defaultThreadCount
-    let count = if not (null args) then read (args !! 1) :: Word else fromIntegral defaultPayCount
+    let count = if length args > 1 then read (args !! 1) :: Word else fromIntegral defaultPayCount
     -- Env/conf
     storeEnv   <- defaultAppDatastoreEnv
     let conf = DatastoreConf storeEnv projectId

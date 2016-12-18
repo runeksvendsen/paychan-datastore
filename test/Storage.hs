@@ -37,19 +37,22 @@ main :: IO ()
 main = do
     -- Command-line args
     args <- getArgs
+    print args
     let numThreads = if not (null args) then read (head args) :: Int else fromIntegral defaultThreadCount
-    let count = if length args > 1 then read (args !! 1) :: Word else fromIntegral defaultPayCount
+    let payCount = if length args > 1 then read (args !! 1) :: Word else fromIntegral defaultPayCount
+    -- Test data
+    tstDataLst <- M.replicateM numThreads $ genTestData payCount
     -- Env/conf
     storeEnv   <- defaultAppDatastoreEnv
     let conf = DatastoreConf storeEnv projectId
-    tstDataLst <- M.replicateM numThreads $ genTestData count
     -- Go!
     putStrLn . unlines $ [ ""
                          , "Project ID:   " ++ cs projectId
-                         , "Thread count: " ++ show defaultThreadCount
-                         , "Pay    count: " ++ show count ++ " (per thread)" ]
+                         , "Thread count: " ++ show numThreads
+                         , "Pay    count: " ++ show payCount ++ " (per thread)" ]
     numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->
         runPaymentTest conf tstData
+    -- Query
     DB.runDatastore conf queryTest
     putStrLn $ "\n\nDone! Executed " ++ show (sum numPayLst) ++ " payments."
 

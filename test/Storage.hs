@@ -31,7 +31,7 @@ defaultPayCount :: Word
 defaultPayCount = 25
 
 defaultThreadCount :: Word
-defaultThreadCount = 20
+defaultThreadCount = 5
 
 main :: IO ()
 main = do

@@ -34,8 +34,8 @@ class IsEntity e where
 instance (Identifier a, HasProperties a, HasKeyPath k, Show k) => IsEntity (EntityWithAnc a k) where
     entEncode (EntityWithAnc e k) =
         ( fst $ entEncode (JustEntity e)
-        , pathElems k
---         , identPathElem e : pathElems k
+--         , pathElems k
+        , identPathElem e : pathElems k
         )
     entDecode (props, peL) =
         decodeEntProps (props ^. DS.epAddtional) >>= \ent ->

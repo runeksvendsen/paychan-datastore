@@ -27,10 +27,13 @@ instance ToValue ByteString      where toValue = encode
 instance ToValue Text            where toValue = encode
 instance ToValue Int64           where toValue = encode
 instance ToValue Double          where toValue = encode
+instance ToValue DS.Value        where toValue = id
 instance ToValue DS.Key          where toValue = encode
 instance ToValue DS.Entity       where toValue = encode
 instance ToValue DS.ArrayValue   where toValue = encode
 instance ToValue DS.ValueNullValue where toValue = encode
+instance ToValue a => ToValue [a] where toValue = toValue . map toValue
+
 
 instance ToValue Sci.Scientific where
     toValue sci =
@@ -47,9 +50,6 @@ instance ToValue Sci.Scientific where
 instance ToValue (Vec.Vector DS.Value) where
     toValue vec = toValue (Vec.toList vec)
 
-instance ToValue [DS.Value] where
-    toValue lst = toValue $
-       DS.arrayValue & DS.avValues .~ lst
 
 
 -- | Parse a value from a 'DS.Value'

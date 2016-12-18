@@ -35,11 +35,11 @@ instance HasScope '[AuthDatastore] ProjectsRunQuery => ChanDB Datastore where
         _ <- removeChan clearingNS k
         return ()
 
-    selectNotes _ =
+    selectNotes uuidL =
         keysOnlyQuery (Just clearingNS) q >>= failOnErr >>= getResult
       where
         q = OfKind (undefined :: StoredNote)
-            $ FilterProperty "most_recent_note" PFOEqual True
+            $ FilterProperty "previous_note_id" PFOEqual uuidL
               emptyQuery
 
     selectChannels GetAll =

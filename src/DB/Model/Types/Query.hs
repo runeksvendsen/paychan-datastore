@@ -2,7 +2,7 @@ module DB.Model.Types.Query where
 
 import Util
 import DB.Types
-import DB.Model.Convert.Value.Native
+import DB.Model.Convert.Value
 import DB.Model.Convert.Identifier
 
 
@@ -51,14 +51,14 @@ instance (IsQuery q, Typeable anc) => IsQuery (AncestorQuery anc q) where
 
 data FilterProperty v q = FilterProperty Text PropertyFilterOp v q
 
-instance (IsQuery q, NativeValue v) => IsQuery (FilterProperty v q) where
+instance (IsQuery q, ToValue v) => IsQuery (FilterProperty v q) where
     mkQuery p (FilterProperty prop op v q) =
         addFilter p (mkQuery p q) propFilter
       where
         propFilter = propertyFilter
             & pfProperty ?~ (propertyReference & prName ?~ prop)
             & pfOp ?~ op
-            & pfValue ?~ encode v
+            & pfValue ?~ toValue v
 
 addFilter :: PartitionId -> Query -> PropertyFilter -> Query
 addFilter p q pf =

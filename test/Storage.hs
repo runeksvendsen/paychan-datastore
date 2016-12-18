@@ -17,6 +17,7 @@ import           Test.QuickCheck            (Gen, sample', vectorOf, choose, gen
 import qualified Network.HTTP.Conduit as HTTP
 import           Network.Google as Google
 import qualified Control.Concurrent.Async as Async
+import           System.Environment (getArgs)
 
 -- Query
 import Data.Time                (getCurrentTime)
@@ -26,23 +27,26 @@ import Data.Time.Clock.POSIX    (posixSecondsToUTCTime)
 projectId :: ProjectId
 projectId = "cloudstore-test"
 
-payCount :: Word
-payCount = 25
+defaultPayCount :: Word
+defaultPayCount = 25
 
-threadCount :: Word
-threadCount = 20
+defaultThreadCount :: Word
+defaultThreadCount = 20
 
 main :: IO ()
 main = do
-    let count = payCount
-    let numThreads = fromIntegral threadCount
+    -- Command-line args
+    args <- getArgs
+    let numThreads = if not (null args) then read (head args) :: Int else fromIntegral defaultThreadCount
+    let count = if not (null args) then read (args !! 1) :: Word else fromIntegral defaultPayCount
+    -- Env/conf
     storeEnv   <- defaultAppDatastoreEnv
     let conf = DatastoreConf storeEnv projectId
     tstDataLst <- M.replicateM numThreads $ genTestData count
     -- Go!
     putStrLn . unlines $ [ ""
                          , "Project ID:   " ++ cs projectId
-                         , "Thread count: " ++ show threadCount
+                         , "Thread count: " ++ show defaultThreadCount
                          , "Pay    count: " ++ show count ++ " (per thread)" ]
     numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->
         runPaymentTest conf tstData

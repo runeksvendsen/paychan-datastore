@@ -8,11 +8,10 @@ import           Data.Void                        (Void)
 import PromissoryNote                             (PromissoryNote, StoredNote, UUID)
 
 
--- New stuff
--- instance IsKind SendPubKey
--- instance IsKind RecvPayChan
--- instance IsKind StoredNote
--- instance IsKind PromissoryNote
+instance ToValue UUID where
+    toValue = toValue . jsonStr . JSON.toJSON
+        where jsonStr (JSON.String txt) = txt
+              jsonStr n = error $ "UUID JSON should be String but it's: " ++ show n
 
 -- Identifiers
 instance Identifier SendPubKey

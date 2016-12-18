@@ -49,8 +49,8 @@ main = do
                          , "Project ID:   " ++ cs projectId
                          , "Thread count: " ++ show numThreads
                          , "Pay    count: " ++ show payCount ++ " (per thread)" ]
-    numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->
-        runPaymentTest conf tstData
+--     numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->
+--         runPaymentTest conf tstData
     -- Query
     DB.runDatastore conf queryTest
     putStrLn $ "\n\nDone! Executed " ++ show (sum numPayLst) ++ " payments."

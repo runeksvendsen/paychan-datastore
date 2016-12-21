@@ -15,11 +15,11 @@ import qualified DB.Util.Error as Util
 
 
 -- |Rollback. Finish the transaction without doing anything.
-txRollback :: HasScope '[AuthDatastore] ProjectsRollback
-           => TxId
+txRollback :: HasScope '[AuthDatastore] ProjectsRollback =>
+           TxId
            -> Datastore RollbackResponse
 txRollback tx =
-    sendReq' (projectsRollback rollbackReq) >>=
+    sendReq (projectsRollback rollbackReq) >>=
         \res -> liftIO (putStrLn "INFO: Transaction rolled back.") >> return res
   where
     rollbackReq = atomically tx rollbackRequest -- rollbackRequest & rrTransaction ?~ tx
@@ -31,7 +31,7 @@ txCommit :: HasScope '[AuthDatastore] ProjectsCommit
          -> CommitRequest
          -> Datastore CommitResponse
 txCommit tx commReq =
-    sendReq' (projectsCommit txCommReq)
+    sendReq (projectsCommit txCommReq)
   where
     txCommReq = atomically tx commReq -- commReq & crMode ?~ Transactional & crTransaction ?~ tx
 
@@ -41,7 +41,7 @@ txCommit tx commReq =
 txBeginUnsafe :: HasScope '[AuthDatastore] ProjectsBeginTransaction
               => Datastore TxId
 txBeginUnsafe = do
-    txBeginRes <- sendReq' (projectsBeginTransaction beginTransactionRequest)
+    txBeginRes <- sendReq (projectsBeginTransaction beginTransactionRequest)
     case txBeginRes ^. btrTransaction of
             Just tid -> return tid
             Nothing  -> Util.internalError $

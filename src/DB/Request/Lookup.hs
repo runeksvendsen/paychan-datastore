@@ -14,8 +14,8 @@ import           DB.Model.Convert
 
 
 txLookup :: forall k e.
-            ( HasScope '[AuthDatastore] ProjectsLookup
-            , HasKeyPath k
+            ( HasKeyPath k
+            , HasScope '[AuthDatastore] ProjectsLookup
             , IsEntity e
             )
            => NamespaceId
@@ -24,7 +24,7 @@ txLookup :: forall k e.
            -> Datastore ( Either String [(e, EntityVersion)] )
 txLookup ns tx key = do
     partId <- mkPartitionId ns
-    res <- Tagged <$> sendReq' (projectsLookup $ reqWithTx partId)
+    res <- Tagged <$> sendReq (projectsLookup $ reqWithTx partId)
     return $ parseLookupRes (res :: Tagged e LookupResponse)    -- (EntityWithAnc e (EntityKey t))
   where
     reqWithTx pid = atomically tx $ unTagged (mkLookup (Just pid) key)

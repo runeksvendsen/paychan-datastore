@@ -9,14 +9,15 @@ import DB.Util.Error
 import Network.Google as Google
 
 
-sendReq' :: ( DatastoreM m
+sendReq :: ( DatastoreM m
             , HasScope '[AuthDatastore] a
             , GoogleRequest a)
          => (ProjectId -> a)
          -> m (Rs a)
-sendReq' mkReq = do
+sendReq mkReq = do
     pid <- getPid
-    liftGoogle $ Google.send (mkReq pid)
+    env <- getEnv
+    runGoogle env $ liftGoogle $ Google.send (mkReq pid)
 
 
 getFirstResult :: Either String [ (a, EntityVersion) ] -> Maybe a

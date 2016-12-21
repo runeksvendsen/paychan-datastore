@@ -10,6 +10,7 @@ module DB.Model.Types.Entity
 where
 
 import Util
+import DB.Model.Types
 import DB.Model.Types.Identifier
 import DB.Model.Types.KeyPath
 import DB.Model.Convert.Properties
@@ -28,15 +29,21 @@ data EntityWithAnc e k = EntityWithAnc e k
 
 
 class IsEntity e where
-    entEncode :: e -> (DS.EntityProperties, [DS.PathElement])
+    entKeyPath :: e -> [DS.PathElement]
+    entProps :: e -> DS.EntityProperties
     entDecode :: (DS.EntityProperties, [DS.PathElement]) -> Either String e
 
+instance HasProperties a => IsEntity (JustEntity a) where
+    entProps (JustEntity e) =
+        DS.entityProperties $ convertWithIndex (excludeKeys e) (encodeProps e)
+    entKeyPath (JustEntity _) = []
+    entDecode (props, _) =
+        decodeEntProps (props ^. DS.epAddtional) >>= \ent ->
+            Right (JustEntity ent)
+
 instance (Identifier a, HasProperties a, HasKeyPath k, Show k) => IsEntity (EntityWithAnc a k) where
-    entEncode (EntityWithAnc e k) =
-        ( fst $ entEncode (JustEntity e)
---         , pathElems k
-        , identPathElem e : pathElems k
-        )
+    entProps (EntityWithAnc e _) = entProps (JustEntity e)
+    entKeyPath (EntityWithAnc e k) = identPathElem e : pathElems k
     entDecode (props, peL) =
         decodeEntProps (props ^. DS.epAddtional) >>= \ent ->
         parseElems (init peL) >>= \(k, leftovers) ->
@@ -45,22 +52,17 @@ instance (Identifier a, HasProperties a, HasKeyPath k, Show k) => IsEntity (Enti
         else
             Right (EntityWithAnc ent k)
 
-instance HasProperties a => IsEntity (JustEntity a) where
-    entEncode (JustEntity e) =
-        ( DS.entityProperties $ convertWithIndex (excludeKeys e) (encodeProps e)
-        , []
-        )
-    entDecode (props, _) =
-        decodeEntProps (props ^. DS.epAddtional) >>= \ent ->
-            Right (JustEntity ent)
-
+instance IsEntity (EntityKey a) where
+    entProps (EntityKey _) = DS.entityProperties Map.empty
+    entKeyPath (EntityKey peL) = peL
+    entDecode (_, peL) = Right (EntityKey peL)
 
 mkEntity :: IsEntity e => Maybe DS.PartitionId -> e -> DS.Entity
 mkEntity partM e = DS.entity
-    & DS.eKey ?~ (DS.key & DS.kPath .~ peL & DS.kPartitionId .~ partM)
-    & DS.eProperties ?~ eProps
-  where
-    (eProps, peL) = entEncode e
+    & DS.eKey ?~ (DS.key
+        & DS.kPath .~ entKeyPath e
+        & DS.kPartitionId .~ partM)
+    & DS.eProperties ?~ entProps e
 
 parseEntity :: forall e.
                IsEntity e
@@ -80,16 +82,6 @@ parseEntity ent = fmapL ("parseEntity:" ++) $ do
 
 
 
--- parseEntity :: IsEntity e => Maybe DS.PartitionId -> DS.Entity -> Either String e
--- parseEntity partM e =
-
--- DS.entity
---     & DS.eKey ?~ (DS.key & DS.kPath .~ peL & DS.kPartitionId .~ partM)
---     & DS.eProperties ?~ eProps
---   where
---     (eProps, peL) = entEncode e
-
-
 class JSON.FromJSON a => HasProperties a where
     encodeProps :: a -> JSON.Object
     excludeKeys :: a -> [NoIndexKey]
@@ -97,7 +89,7 @@ class JSON.FromJSON a => HasProperties a where
 
 
 instance HasProperties Void
-    where encodeProps _ = Map.empty
+    where encodeProps = const Map.empty
 instance JSON.FromJSON Void where
     parseJSON = mempty
 

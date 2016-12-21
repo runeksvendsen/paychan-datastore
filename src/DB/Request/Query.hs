@@ -55,7 +55,7 @@ runQueryReq ::
          -> Tagged a RunQueryRequest
          -> m RunQueryResponse
 runQueryReq txM reqT =
-    sendReq' (projectsRunQuery txReq)
+    sendReq (projectsRunQuery txReq)
   where
     txReq = maybe req (`atomically` req) txM
     req = unTagged reqT

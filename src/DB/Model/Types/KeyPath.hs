@@ -49,18 +49,7 @@ instance (Typeable a, HasKeyPath anc) => HasKeyPath (WithAncestor a anc) where
     parseElems [] = Left $ "Parse fail: end-of-input." ++
         " Expected element of kind " ++ show (typeOf (undefined :: a))
 
--- instance IsKind a => HasKeyPath (WithAncestor a (Ident Void)) where
---     pathElems (WithAncestor a _) =
---         pathElems a
---     parseElems (idnt:lo) = parseIdent idnt >>= \ident ->
---         Right (WithAncestor ident root, lo)
---     parseElems [] = Left $ "Parse fail: end-of-input." ++
---         " Expected element of kind " ++ show (typeOf (undefined :: a))
-
-
--- | Same as 'WithAncestor', but only knows the kind/type of the entity (not the key kinds).
---  Allows us to return many different key paths pointing to the same
---   entity type.
+-- | Same as 'WithAncestor', but only knows the kind/type of the entity (types).
 data EntityKey a = EntityKey [PathElement]
     deriving (Eq, Show)
 

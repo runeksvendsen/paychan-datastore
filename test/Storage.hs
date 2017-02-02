@@ -5,7 +5,7 @@ module Storage where
 import           Util
 import           ChanDB as DB
 
-import qualified Data.Bitcoin.PaymentChannel.Test as Pay
+import qualified PaymentChannel.Test as Pay
 import qualified PromissoryNote.Test as Note
 import qualified PromissoryNote as Note
 
@@ -62,7 +62,7 @@ runPaymentTest cfg tstData = DB.runDatastore cfg $ paymentTest tstData
 paymentTest :: Pay.ChannelPairResult -> Datastore Int
 paymentTest Pay.ChannelPairResult{..} = do
     let sampleRecvChan = Pay.recvChan resInitPair
-        sampleKey = Pay.getSenderPubKey sampleRecvChan
+        sampleKey = Pay.getSendPubKey sampleRecvChan
         paymentList = reverse $ init resPayList
     _ <- DB.create sampleRecvChan
     -- Safe lookup + update/rollback
@@ -93,22 +93,22 @@ genTestData numPayments = do
     amountList <- map fromIntegral <$> generate
         (vectorOf (fromIntegral numPayments+1) (choose (0, 100) :: Gen Integer))
     (arbPair,_) <- fmap head $ sample' $ Pay.mkChanPairInitAmount (head amountList)
-    let (chanPair, _) = Pay.runChanPair arbPair (tail amountList)
-    return chanPair
+    Pay.runChanPair arbPair (tail amountList)
 
 doPayment :: HasScope '[AuthDatastore] ProjectsRunQuery
           => Pay.SendPubKey
-          -> Pay.FullPayment
+          -> Pay.SignedPayment
           -> Datastore (Either DB.UpdateErr RecvPayChan)
 doPayment key payment = do
     _ <- DB.paychanWithState key $ \pChan -> do
-            now <- liftIO Clock.getCurrentTime
-            case Pay.recvPayment now pChan payment of
+            resE <- liftIO $ Pay.acceptPayment pChan payment
+            case resE of
                 Right (_,s) -> return $ Right s
                 Left e -> error ("recvPayment error :( " ++ show e) >> return (Left e)
     DB.noteWithState key $ \pChan noteM -> do
-        now <- liftIO Clock.getCurrentTime
-        case Pay.recvPayment now pChan payment of
+        now  <- liftIO getCurrentTime
+        resE <- liftIO $ Pay.acceptPayment pChan payment
+        case resE of
             Right (a,s) -> do
                 r@(Right (_,note)) <- mkNewNote (a,s) now noteM
                 return r
@@ -123,15 +123,15 @@ doPayment key payment = do
 createNewNote :: MonadIO m
               => Note.Amount
               -> Clock.UTCTime
-              -> Pay.FullPayment
+              -> Pay.SignedPayment
               -> Maybe StoredNote
               -> m StoredNote
 createNewNote val now payment prevNoteM = do
-    newNote <- liftIO $ head <$> sample' (Note.arbNoteOfValue val now)
+    newNote <- liftIO $ head <$> sample' (Note.arbNoteOfValueT now val)
     let noteFromPrev prevPN = either error id $
-            Note.mkCheckStoredNote newNote prevPN (Pay.fpPayment payment)
+            Note.mkCheckStoredNote newNote prevPN payment
     return $ maybe
-        ( Note.mkGenesisNote newNote (Pay.fpPayment payment) )
+        ( Note.mkGenesisNote newNote payment )
         noteFromPrev
         prevNoteM
 

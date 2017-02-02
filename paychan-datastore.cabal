@@ -5,13 +5,13 @@
 name:           paychan-datastore
 version:        0.1.0.0
 description:    Please see README.md
-category:       Finance Network Bitcoin
+category:       Database Network Google
 homepage:       https://github.com/runeksvendsen/paychan-datastore#readme
 bug-reports:    https://github.com/runeksvendsen/paychan-datastore/issues
 author:         Rune K. Svendsen
 maintainer:     runesvend@gmail.com
 copyright:      2016 Rune K. Svendsen
-license:        PublicDomain
+license:        CC0
 build-type:     Simple
 cabal-version:  >= 1.10
 

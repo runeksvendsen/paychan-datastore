@@ -1,7 +1,7 @@
 module ChanDB.Orphans where
 
 import ChanDB.Types
-import qualified Data.Bitcoin.PaymentChannel    as Pay
+import qualified PaymentChannel    as Pay
 import qualified PromissoryNote                 as Note
 import qualified Data.Aeson as JSON
 import           Data.Void                        (Void)
@@ -21,13 +21,13 @@ instance Identifier UUID
     where objectId = Right . encodeHex
 
 instance Identifier RecvPayChan
-    where objectId = objectId . Pay.getSenderPubKey
+    where objectId = objectId . Pay.getSendPubKey
 
 instance Identifier PromissoryNote
-    where objectId = objectId . Note.getID
+    where objectId = objectId . Note.getUUID
 
 instance Identifier StoredNote
-    where objectId = objectId . Note.getID
+    where objectId = objectId . Note.getUUID
 
 
 -- Entities

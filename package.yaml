@@ -1,13 +1,13 @@
-name: paychan-datastore
-version: '0.1.0.0'
+name:       paychan-datastore
+version:    '0.1.0.0'
 synopsis:
-description: Please see README.md
-category: Finance Network Bitcoin
-author: Rune K. Svendsen
-maintainer: runesvend@gmail.com
-copyright: 2016 Rune K. Svendsen
-license: PublicDomain
-github: runeksvendsen/paychan-datastore
+description:  Please see README.md
+category:     Database Network Google
+author:       Rune K. Svendsen
+maintainer:   runesvend@gmail.com
+copyright:    2016 Rune K. Svendsen
+license:      CC0
+github:       runeksvendsen/paychan-datastore
 
 default-extensions:
 - OverloadedStrings

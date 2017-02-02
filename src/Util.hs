@@ -4,6 +4,7 @@ module Util
   module Types
 , module Control.Lens
 , module Data.Maybe
+, module Ctrl
 , Except.throw
 -- , fromMaybe, isJust, isNothing, fromJust, listToMaybe
 , lefts, rights
@@ -22,7 +23,7 @@ where
 import           Types
 import           Control.Monad                  ((<=<), (>=>), void, forM)
 import           Control.Monad.IO.Class         (liftIO)
-import           Data.Monoid                    ((<>), mempty)
+import           Data.Monoid                    as Ctrl ((<>), mempty)
 import           Control.Monad.Trans.Control    as Ctrl
 
 import qualified Control.Exception as Except

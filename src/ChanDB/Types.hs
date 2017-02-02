@@ -13,7 +13,7 @@ module ChanDB.Types
 , Pay.PaymentChannel(..)
 , PromissoryNote, StoredNote, UUID
 , Pay.PayChanError
-, Pay.BitcoinAmount
+, Pay.BtcAmount
 , UTCTime
 )
 where
@@ -23,7 +23,7 @@ import DB.Types as DB
 import DB.Model.Convert as Convert
 import Data.Time.Clock (UTCTime)
 
-import qualified Data.Bitcoin.PaymentChannel.Test as Pay
+import qualified PaymentChannel.Test as Pay
 import           PromissoryNote                   (PromissoryNote, StoredNote, UUID) -- , setMostRecentNote)
 
 
@@ -38,9 +38,9 @@ data UpdateErr =
 data DBQuery =
     GetAll
   | ExpiringBefore UTCTime
-  | CoveringValue Pay.BitcoinAmount
+  | CoveringValue Pay.BtcAmount
 
 
 type Note = PromissoryNote
-type RecvPayChan = Pay.RecvPayChanX
+type RecvPayChan = Pay.ServerPayChanX
 

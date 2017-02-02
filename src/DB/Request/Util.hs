@@ -16,8 +16,7 @@ sendReq :: ( DatastoreM m
          -> m (Rs a)
 sendReq mkReq = do
     pid <- getPid
-    env <- getEnv
-    runGoogle env $ liftGoogle $ Google.send (mkReq pid)
+    liftGoogle $ Google.send (mkReq pid)
 
 
 getFirstResult :: Either String [ (a, EntityVersion) ] -> Maybe a

@@ -41,10 +41,11 @@ class (Monad m, HasScope '[AuthDatastore] ProjectsRunQuery) => ChanDB m where
     settleFin        :: [RecvPayChan]
                      -> m ()
 
-     -- | Remove state for both PayChanServer and ClearingServer
+    -- | Remove state for both PayChanServer and ClearingServer
     delete           :: SendPubKey
                      -> m ()
 
+    -- |
     runDB            :: DatastoreConf
                      -> m a
                      -> IO a

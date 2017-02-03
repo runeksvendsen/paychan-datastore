@@ -92,7 +92,7 @@ withDBStateNote :: HasScope '[AuthDatastore] ProjectsRunQuery
                 -> Maybe StoredNote
                 -> Datastore (Either PayChanError (RecvPayChan,StoredNote))
                )
-            -> Datastore (Either UpdateErr RecvPayChan)
+            -> Datastore (Either UpdateErr StoredNote)
 withDBStateNote ns sendPK f = do
     (eitherRes,_) <- withTx $ \tx -> do
         resE  <- txGetChanState ns tx sendPK
@@ -108,7 +108,7 @@ withDBStateNote ns sendPK f = do
                 updChanNotes <- mkNoteCommit ns newState newNote noteM
                 return (applyResult, Just updChanNotes)
     return $ case eitherRes of
-        Right (state,_) -> Right state
+        Right (_,note) -> Right note
         Left e -> Left e
 
 mkNoteCommit :: NamespaceId

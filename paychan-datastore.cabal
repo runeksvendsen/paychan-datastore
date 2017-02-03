@@ -1,4 +1,4 @@
--- This file has been generated from package.yaml by hpack version 0.14.0.
+-- This file has been generated from package.yaml by hpack version 0.15.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -62,7 +62,6 @@ library
   exposed-modules:
       ChanDB
       DB.Model.Convert.Properties
-      Util
   other-modules:
       ChanDB.Creation
       ChanDB.Interface
@@ -99,6 +98,7 @@ library
       DB.Types
       DB.Util.Error
       Types
+      Util
       Paths_paychan_datastore
   default-language: Haskell2010
 

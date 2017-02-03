@@ -98,7 +98,7 @@ genTestData numPayments = do
 doPayment :: HasScope '[AuthDatastore] ProjectsRunQuery
           => Pay.SendPubKey
           -> Pay.SignedPayment
-          -> Datastore (Either DB.UpdateErr RecvPayChan)
+          -> Datastore (Either DB.UpdateErr StoredNote)
 doPayment key payment = do
     _ <- DB.paychanWithState key $ \pChan -> do
             resE <- liftIO $ Pay.acceptPayment pChan payment
@@ -128,8 +128,8 @@ createNewNote :: MonadIO m
               -> m StoredNote
 createNewNote val now payment prevNoteM = do
     newNote <- liftIO $ head <$> sample' (Note.arbNoteOfValueT now val)
-    let noteFromPrev prevPN = either error id $
-            Note.mkCheckStoredNote newNote prevPN payment
+    let noteFromPrev prevPN =
+            either error id $ Note.mkCheckStoredNote newNote prevPN payment
     return $ maybe
         ( Note.mkGenesisNote newNote payment )
         noteFromPrev

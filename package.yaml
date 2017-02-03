@@ -63,7 +63,7 @@ library:
   exposed-modules:
   - ChanDB
   - DB.Model.Convert.Properties
-  - Util
+
 tests:
   storage-test:
     main: Storage.hs

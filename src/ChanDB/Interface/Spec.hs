@@ -20,10 +20,11 @@ class (Monad m, HasScope '[AuthDatastore] ProjectsRunQuery) => ChanDB m where
                      -> (RecvPayChan -> m (Either PayChanError RecvPayChan))
                      -> m (Either UpdateErr RecvPayChan)
 
-    -- | ClearingServer: Provide a function in which we have access to the DB state + the most recent note (if present)
+    -- | ClearingServer: Provide a function in which we have access to the DB state +
+    --    the most recently issued note (if present)
     noteWithState    :: SendPubKey
                      -> (RecvPayChan -> Maybe StoredNote -> m (Either PayChanError (RecvPayChan,StoredNote)))
-                     -> m (Either UpdateErr RecvPayChan)
+                     -> m (Either UpdateErr StoredNote)
 
     -- | Select channel keys by properties
     selectChannels   :: DBQuery

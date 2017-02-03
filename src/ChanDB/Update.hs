@@ -7,7 +7,7 @@ module ChanDB.Update
 )
 where
 
-import           Util
+import LibPrelude
 import           ChanDB.Orphans ()
 import           ChanDB.Types
 import           DB.Query

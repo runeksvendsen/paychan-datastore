@@ -5,7 +5,7 @@ import DB.Types
 import DB.Util.Error
 import DB.Model.Types.Entity
 import DB.Model.Convert.Entity
-import Util
+import LibPrelude
 
 import qualified Network.Google.Datastore as DS
 

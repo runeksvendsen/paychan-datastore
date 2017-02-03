@@ -6,7 +6,7 @@ import DB.Model.Types.Query
 import DB.Request.Util
 import DB.Types
 import DB.Model.Convert
-import Util
+import LibPrelude
 
 
 queryBatchEntities ::

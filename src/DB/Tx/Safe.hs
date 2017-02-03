@@ -6,7 +6,7 @@ module DB.Tx.Safe
 )
 where
 
-import Util
+import LibPrelude
 import DB.Tx.Util
 import DB.Types
 import qualified Control.Monad.Catch as      Catch

@@ -1,6 +1,6 @@
 module DB.Model.Types.Query where
 
-import Util
+import LibPrelude
 import DB.Types
 import DB.Model.Convert.Value
 import DB.Model.Convert.Identifier

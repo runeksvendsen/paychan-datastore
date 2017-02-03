@@ -9,7 +9,7 @@ module DB.Model.Types.Entity
 )
 where
 
-import Util
+import LibPrelude
 import DB.Model.Types
 import DB.Model.Types.Identifier
 import DB.Model.Types.KeyPath

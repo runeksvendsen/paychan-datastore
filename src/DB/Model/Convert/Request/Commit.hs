@@ -4,7 +4,7 @@ module DB.Model.Convert.Request.Commit where
 import DB.Model.Types.Entity
 import DB.Model.Convert.Entity
 import DB.Types
-import Util
+import LibPrelude
 
 import qualified Network.Google.Datastore as DS
 

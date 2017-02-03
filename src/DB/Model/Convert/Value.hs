@@ -8,7 +8,7 @@ where
 
 import DB.Model.Convert.Value.EncodeAsKey
 import DB.Model.Convert.Value.Native -- (encode, decode, decodeMaybe)
-import Util
+import LibPrelude
 import qualified Network.Google.Datastore as DS
 import Data.Text (Text)
 import qualified Data.Scientific        as Sci

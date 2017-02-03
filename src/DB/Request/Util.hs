@@ -2,7 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables, DeriveAnyClass, GADTs, FlexibleContexts, DataKinds #-}
 module DB.Request.Util where
 
-import Util
+import LibPrelude
 import DB.Model.Types.Request
 import DB.Types
 import DB.Util.Error

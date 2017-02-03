@@ -97,8 +97,8 @@ library
       DB.Tx.Util
       DB.Types
       DB.Util.Error
+      LibPrelude
       Types
-      Util
       Paths_paychan_datastore
   default-language: Haskell2010
 

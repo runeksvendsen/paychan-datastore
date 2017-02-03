@@ -1,6 +1,6 @@
 module ChanDB.Util where
 
-import           Util
+import LibPrelude
 import           DB.Types
 import           PromissoryNote.StoredNote  (setMostRecentNote)
 import           DB.Tx.Safe

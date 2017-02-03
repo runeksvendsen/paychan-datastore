@@ -15,7 +15,7 @@ module DB.Types
 )
 where
 
-import           Util
+import LibPrelude
 import           DB.Model.Types as Export
 import           DB.Model.Types.Entity
 import           DB.Model.Types.Request

@@ -10,7 +10,7 @@ module DB.Model.Types.KeyPath
 )
 where
 
-import Util
+import LibPrelude
 import DB.Model.Types
 import DB.Model.Convert.Identifier as Idn
 import qualified Network.Google.Datastore.Types as DS

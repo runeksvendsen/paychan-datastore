@@ -3,7 +3,7 @@ module DB.Model.Convert.Value.EncodeAsKey where
 
 import DB.Model.Convert.Value.Native (encode, decodeMaybe)
 -- import Types
-import Util
+import LibPrelude
 import qualified Network.Google.Datastore as DS
 import Data.Typeable
 import Data.Text (Text)

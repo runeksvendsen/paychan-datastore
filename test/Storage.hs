@@ -2,8 +2,12 @@
 {-# LANGUAGE DeriveAnyClass, GADTs, FlexibleContexts, DataKinds, RecordWildCards #-}
 module Storage where
 
-import           Util
 import           ChanDB as DB
+-- Util
+import           Control.Monad.IO.Class         (liftIO)
+import           Control.Lens                   hiding (op)
+import           Data.String.Conversions        (cs)
+
 
 import qualified PaymentChannel.Test as Pay
 import qualified PromissoryNote.Test as Note
@@ -21,7 +25,8 @@ import           System.Environment (getArgs)
 
 -- Query
 import Data.Time                (getCurrentTime)
-import Data.Time.Clock.POSIX    (posixSecondsToUTCTime)
+
+
 
 
 projectId :: ProjectId
@@ -49,11 +54,11 @@ main = do
                          , "Project ID:   " ++ cs projectId
                          , "Thread count: " ++ show numThreads
                          , "Pay    count: " ++ show payCount ++ " (per thread)" ]
---     numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->
---         runPaymentTest conf tstData
+    numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->
+        runPaymentTest conf tstData
     -- Query
     DB.runDatastore conf queryTest
---     putStrLn $ "\n\nDone! Executed " ++ show (sum numPayLst) ++ " payments."
+    putStrLn $ "\n\nDone! Executed " ++ show (sum numPayLst) ++ " payments."
 
 
 runPaymentTest :: DatastoreConf -> Pay.ChannelPairResult -> IO Int
@@ -109,9 +114,7 @@ doPayment key payment = do
         now  <- liftIO getCurrentTime
         resE <- liftIO $ Pay.acceptPayment pChan payment
         case resE of
-            Right (a,s) -> do
-                r@(Right (_,note)) <- mkNewNote (a,s) now noteM
-                return r
+            Right (a,s) -> mkNewNote (a,s) now noteM
 
             Left e -> error ("recvPayment error :( " ++ show e) >> return (Left e)
   where

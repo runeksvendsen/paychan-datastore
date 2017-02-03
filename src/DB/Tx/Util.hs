@@ -9,7 +9,7 @@ module DB.Tx.Util
 where
 
 import DB.Request.Util
-import Util
+import LibPrelude
 import DB.Types
 import qualified DB.Util.Error as Util
 

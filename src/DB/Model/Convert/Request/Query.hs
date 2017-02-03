@@ -6,7 +6,7 @@ import DB.Model.Convert.Request.Lookup (parseEntityResult, parseEntityResultKey)
 import DB.Types
 import DB.Util.Error
 import DB.Model.Convert.Entity
-import Util
+import LibPrelude
 import Text.Printf
 
 import qualified Network.Google.Datastore as DS

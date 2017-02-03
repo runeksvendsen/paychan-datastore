@@ -1,7 +1,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 module ChanDB.Interface.Implementation.Datastore where
 
-import Util
+import LibPrelude
 import ChanDB.Types
 import ChanDB.Interface.Spec
 import ChanDB.Query

@@ -2,7 +2,7 @@
 module DB.Model.Types.Identifier where
 
 import           Types
-import           Util
+import LibPrelude
 import qualified Data.ByteString.Base16         as B16
 import qualified Data.Serialize                 as Bin
 import           Data.String.Conversions          (cs)

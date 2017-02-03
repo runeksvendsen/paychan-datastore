@@ -7,7 +7,7 @@ module DB.Model.Types.Request
 -- )
 where
 
-import Util
+import LibPrelude
 import DB.Model.Types
 import Network.Google.Datastore
 

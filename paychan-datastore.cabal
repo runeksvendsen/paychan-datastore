@@ -59,17 +59,20 @@ library
     , monad-logger
     , bitcoin-payment-channel
     , promissory-note-types
+    , rbpcp-api
   exposed-modules:
       ChanDB
       DB.Model.Convert.Properties
   other-modules:
       ChanDB.Creation
+      ChanDB.Env
       ChanDB.Interface
       ChanDB.Interface.Implementation.Datastore
       ChanDB.Interface.Spec
       ChanDB.Orphans
       ChanDB.Query
       ChanDB.Types
+      ChanDB.Types.StoredNote
       ChanDB.Update
       ChanDB.Util
       DB.Model.Convert
@@ -92,13 +95,13 @@ library
       DB.Request
       DB.Request.Lookup
       DB.Request.Query
-      DB.Request.Util
+      DB.Request.Send
       DB.Tx.Safe
       DB.Tx.Util
       DB.Types
       DB.Util.Error
       LibPrelude
-      Types
+      LibPrelude.Types
       Paths_paychan_datastore
   default-language: Haskell2010
 
@@ -144,6 +147,7 @@ test-suite conversion-test
     , monad-logger
     , bitcoin-payment-channel
     , promissory-note-types
+    , rbpcp-api
     , base
     , paychan-datastore
     , HUnit >=1.3
@@ -197,6 +201,7 @@ test-suite storage-test
     , monad-logger
     , bitcoin-payment-channel
     , promissory-note-types
+    , rbpcp-api
     , paychan-datastore
     , bitcoin-payment-channel
     , promissory-note-types

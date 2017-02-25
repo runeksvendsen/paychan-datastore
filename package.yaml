@@ -54,6 +54,7 @@ dependencies:
 - monad-logger
 - bitcoin-payment-channel
 - promissory-note-types
+- rbpcp-api
 
 library:
   source-dirs: src

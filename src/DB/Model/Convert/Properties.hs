@@ -17,7 +17,7 @@ module DB.Model.Convert.Properties
 where
 
 import DB.Model.Convert.Value
-import Types
+import LibPrelude.Types
 import Network.Google.Datastore
 import Control.Lens
 

@@ -3,7 +3,7 @@
 module DB.Request.Query where
 
 import DB.Model.Types.Query
-import DB.Request.Util
+import DB.Request.Send
 import DB.Types
 import DB.Model.Convert
 import LibPrelude
@@ -57,18 +57,19 @@ runQueryReq ::
 runQueryReq txM reqT =
     sendReq (projectsRunQuery txReq)
   where
-    txReq = maybe req (`atomically` req) txM
+    txReq = maybe req (`mkAtomicReq` req) txM
     req = unTagged reqT
 
-entityQuery :: forall q e.
-           ( IsQuery q
+entityQuery :: forall q e m.
+           ( DatastoreM m
+           , IsQuery q
            , IsEntity e
            , HasScope '[AuthDatastore] ProjectsRunQuery
            )
           => Maybe NamespaceId
           -> Maybe TxId
           -> q
-          -> Datastore ( Either String [(e, EntityVersion)] )
+          -> m ( Either String [(e, EntityVersion)] )
 entityQuery nsM txM q = do
     req <- mkQueryReq nsM q
     parseQueryRes <$> runQueryReq txM req

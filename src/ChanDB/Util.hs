@@ -2,7 +2,6 @@ module ChanDB.Util where
 
 import LibPrelude
 import           DB.Types
-import           PromissoryNote.StoredNote  (setMostRecentNote)
 import           DB.Tx.Safe
 import           DB.Request                 (txLookup, getFirstResult)
 import           DB.Model.Convert
@@ -16,7 +15,11 @@ import           Data.Maybe                 (fromMaybe)
 traceCommit :: forall a. Show a => a -> a
 traceCommit c = show c `trace` c
 
--- |Check entity version.
+-- Check entity version
+-- NB: Versioning disabled.
+-- When updating to >= gogol-datastore-0.1.1, return actual version using 'mrVersion'
+
+{-
 checkCommResponse :: EntityVersion -> CommitResponse -> UpdateResult
 checkCommResponse prevVer commResp =
     case commResp ^. crMutationResults of
@@ -27,5 +30,6 @@ checkCommResponse prevVer commResp =
   where
     getMRVersion r = fromMaybe
         (throw . InternalError $ "MutationResult: empty version field")
-        (r ^. mrVersion)
 
+        (Just 1)-- (r ^. mrVersion)
+-}

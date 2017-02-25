@@ -21,30 +21,37 @@ instance IsRequest RunQueryRequest
 instance IsRequest BeginTransactionRequest
 
 
+
+
+
+
+
+
+
 -- | Requests that can be executed within a transaction.
 class TransactionalReq a where
-    atomically :: TxId -> a -> a
+    mkAtomicReq :: TxId -> a -> a
 
 -- data Atomically a = Atomically TxId a
 
 -- instance TransactionalReq a => TransactionalReq (Atomically a) where
---     atomically (Atomically tx r) = atomically tx r
+--     mkAtomicReq (Atomically tx r) = mkAtomicReq tx r
 
 instance TransactionalReq RollbackRequest where
-    atomically tx req = req
+    mkAtomicReq tx req = req
         & rrTransaction ?~ tx
 
 instance TransactionalReq CommitRequest where
-    atomically tx req = req
+    mkAtomicReq tx req = req
         & crTransaction ?~ tx
         & crMode ?~ Transactional
 
 instance TransactionalReq LookupRequest where
-    atomically tx req = req
+    mkAtomicReq tx req = req
         & lrReadOptions ?~ (readOptions & roTransaction ?~ tx)
 
 instance TransactionalReq RunQueryRequest where
-    atomically tx req = req
+    mkAtomicReq tx req = req
         & rqrReadOptions ?~ (readOptions & roTransaction ?~ tx)
 
 

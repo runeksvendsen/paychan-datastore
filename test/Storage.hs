@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveAnyClass, GADTs, FlexibleContexts, DataKinds, RecordWildCards #-}
+{-# LANGUAGE UndecidableInstances, UndecidableSuperClasses, KindSignatures #-}
 module Storage where
 
 import           ChanDB as DB
@@ -28,6 +29,14 @@ import Data.Time                (getCurrentTime)
 
 
 
+-- TODO: Move to bitcoin-payment-channel?
+genTestData :: Word -> IO Pay.ChannelPairResult
+genTestData numPayments = do
+    amountList <- map fromIntegral <$> generate
+        (vectorOf (fromIntegral numPayments+1) (choose (0, 100) :: Gen Integer))
+    (arbPair,_) <- fmap head $ sample' $ Pay.mkChanPairInitAmount (head amountList)
+    Pay.runChanPair arbPair (tail amountList)
+
 
 projectId :: ProjectId
 projectId = "cloudstore-test"
@@ -45,7 +54,7 @@ main = do
     let numThreads = if not (null args) then read (head args) :: Int else defaultThreadCount
     let payCount = if length args > 1 then read (args !! 1) :: Word else defaultPayCount
     -- Env/conf
-    storeEnv <- defaultAppDatastoreEnv
+    storeEnv <- DB.defaultAppDatastoreEnv
     let conf = DatastoreConf storeEnv projectId
     -- Test data
     tstDataLst <- M.replicateM numThreads $ genTestData payCount
@@ -55,70 +64,64 @@ main = do
                          , "Thread count: " ++ show numThreads
                          , "Pay    count: " ++ show payCount ++ " (per thread)" ]
     numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->
-        runPaymentTest conf tstData
+        paymentTest conf tstData
     -- Query
-    DB.runDatastore conf queryTest
+--     DB.runDatastore conf queryTest
     putStrLn $ "\n\nDone! Executed " ++ show (sum numPayLst) ++ " payments."
 
 
-runPaymentTest :: DatastoreConf -> Pay.ChannelPairResult -> IO Int
-runPaymentTest cfg tstData = DB.runDatastore cfg $ paymentTest tstData
+-- runPaymentTest :: DatastoreConf -> Pay.ChannelPairResult -> IO Int
+-- runPaymentTest cfg tstData = -- DB.runDatastore cfg $ paymentTest tstData
 
-paymentTest :: Pay.ChannelPairResult -> Datastore Int
-paymentTest Pay.ChannelPairResult{..} = do
+
+
+-- dbCreate :: (HasScope '[AuthDatastore] ProjectsRunQuery, DatastoreM m) => DatastoreConf -> m () -> IO ()
+-- dbCreate cfg runThis = DB.runDB cfg $ runThis
+
+paymentTest :: DatastoreConf -> Pay.ChannelPairResult -> IO Int
+paymentTest cfg Pay.ChannelPairResult{..} = do
     let sampleRecvChan = Pay.recvChan resInitPair
         sampleKey = Pay.getSendPubKey sampleRecvChan
         paymentList = reverse $ init resPayList
-    _ <- DB.create sampleRecvChan
+    _ <- DB.runDB cfg (DB.create sampleRecvChan :: Datastore ()) -- dbCreate cfg (DB.create sampleRecvChan :: Datastore ())
     -- Safe lookup + update/rollback
-    res <- M.forM paymentList (doPayment sampleKey)
+    res <- M.forM paymentList $ \paym -> do
+            atomically (PayChan cfg) $ doPayChan sampleKey paym
+            atomically (Clearing cfg) $ doClearing sampleKey paym
+
+
 --     _ <- DB.removeChan ns sampleKey
     return $ length res
 
-queryTest :: Datastore ()
-queryTest = do
---     now <- liftIO $ getCurrentTime
---     hey <- selectChannels $ ExpiringBefore (posixSecondsToUTCTime 2795556940)
---     liftIO $ print hey
---     liftIO $ putStrLn "##################### Notes ################"
---     DB.selectNotes undefined >>= liftIO . print
-    DB.selectChannels (CoveringValue 100000) >>= liftIO . print
+-- queryTest :: Datastore ()
+-- queryTest =
+--     DB.selectChannels (CoveringValue 100000) >>= liftIO . print
 
-defaultAppDatastoreEnv :: IO (Env '[AuthDatastore])
-defaultAppDatastoreEnv = do
-    manager <- HTTP.newManager HTTP.tlsManagerSettings
-    logger <- Google.newLogger Google.Error stderr
-    Google.newEnv <&>
-        (envLogger .~ logger) .
-        (envScopes .~ datastoreScope) .
-        (envManager .~ manager)
 
-genTestData :: Word -> IO Pay.ChannelPairResult
-genTestData numPayments = do
-    amountList <- map fromIntegral <$> generate
-        (vectorOf (fromIntegral numPayments+1) (choose (0, 100) :: Gen Integer))
-    (arbPair,_) <- fmap head $ sample' $ Pay.mkChanPairInitAmount (head amountList)
-    Pay.runChanPair arbPair (tail amountList)
 
-doPayment :: HasScope '[AuthDatastore] ProjectsRunQuery
-          => Pay.SendPubKey
+doPayChan :: Pay.SendPubKey
           -> Pay.SignedPayment
-          -> Datastore (Either DB.UpdateErr StoredNote)
-doPayment key payment = do
-    _ <- DB.paychanWithState key $ \pChan -> do
-            resE <- liftIO $ Pay.acceptPayment pChan payment
-            case resE of
-                Right (_,s) -> return $ Right s
-                Left e -> error ("recvPayment error :( " ++ show e) >> return (Left e)
-    DB.noteWithState key $ \pChan noteM -> do
-        now  <- liftIO getCurrentTime
-        resE <- liftIO $ Pay.acceptPayment pChan payment
-        case resE of
-            Right (a,s) -> mkNewNote (a,s) now noteM
+          -> DatastoreTx (Pay.BtcAmount, RecvPayChan)
+doPayChan pk payment = do
+    chan <- Pay.fromMaybe (error "404") <$> DB.getPayChan pk
+    resE <- liftIO $ Pay.acceptPayment chan (Pay.toPaymentData payment)
+    case resE of
+        Right (v,s) -> DB.updatePayChan s >> return (v,s)
+        Left e -> error $ "recvPayment error :( " ++ show e
 
-            Left e -> error ("recvPayment error :( " ++ show e) >> return (Left e)
+doClearing :: Pay.SendPubKey
+          -> Pay.SignedPayment
+          -> DatastoreTx StoredNote -- (Either DB.UpdateErr StoredNote)
+doClearing pk payment = do
+    (val,s) <- doPayChan pk payment
+
+    noteM       <- getNewestNote pk
+    (_,newNote) <- either error id <$> mkNewNote (val,s) noteM
+    insertUpdNotes (pk, newNote, setMostRecentNote False <$> noteM)
+    return newNote
   where
-    mkNewNote (val,s) now prevNoteM = do
+    mkNewNote (val,s) prevNoteM = do
+        now     <- liftIO getCurrentTime
         newNote <- createNewNote val now payment prevNoteM
         return $ Right (s, newNote)
 
@@ -132,9 +135,9 @@ createNewNote :: MonadIO m
 createNewNote val now payment prevNoteM = do
     newNote <- liftIO $ head <$> sample' (Note.arbNoteOfValueT now val)
     let noteFromPrev prevPN =
-            either error id $ Note.mkCheckStoredNote newNote prevPN payment
+            either error id $ DB.mkCheckStoredNote newNote prevPN (Pay.toPaymentData payment)
     return $ maybe
-        ( Note.mkGenesisNote newNote payment )
+        ( DB.mkGenesisNote newNote (Pay.toPaymentData payment) )
         noteFromPrev
         prevNoteM
 

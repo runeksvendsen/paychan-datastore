@@ -8,23 +8,24 @@ module DB.Request.Lookup
 where
 
 import           DB.Model.Types
-import           DB.Request.Util
+import           DB.Request.Send
 import           DB.Types
 import           DB.Model.Convert
 
 
-txLookup :: forall k e.
-            ( HasKeyPath k
+txLookup :: forall k e m.
+            ( DatastoreM m
+            , HasKeyPath k
             , HasScope '[AuthDatastore] ProjectsLookup
             , IsEntity e
             )
            => NamespaceId
            -> TxId
            -> k
-           -> Datastore ( Either String [(e, EntityVersion)] )
+           -> m ( Either String [(e, EntityVersion)] )
 txLookup ns tx key = do
     partId <- mkPartitionId ns
     res <- Tagged <$> sendReq (projectsLookup $ reqWithTx partId)
     return $ parseLookupRes (res :: Tagged e LookupResponse)    -- (EntityWithAnc e (EntityKey t))
   where
-    reqWithTx pid = atomically tx $ unTagged (mkLookup (Just pid) key)
+    reqWithTx pid = mkAtomicReq tx $ unTagged (mkLookup (Just pid) key)

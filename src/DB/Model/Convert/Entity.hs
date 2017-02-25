@@ -10,7 +10,7 @@ where
 import DB.Model.Types.KeyPath
 import DB.Model.Types.Entity
 import DB.Model.Convert.Identifier
-import Types
+import LibPrelude.Types
 import LibPrelude
 import qualified Data.HashMap.Strict        as Map
 import qualified Network.Google.Datastore.Types   as DS

@@ -61,5 +61,6 @@ parseEntityResultKey entRes = fmapL ("parseEntityResultKey: " ++) $
                         else
                             Right (k, ver)
 
-
-entResVer er = maybe (Left "EntityResult: Empty version field") Right (er ^. DS.erVersion)
+-- NB: Versioning disabled.
+--  When updating to >= gogol-datastore-0.1.1, return actual version using DS.erVersion
+entResVer er = maybe (Left "EntityResult: Empty version field") Right (Just 1) -- (er ^. DS.erVersion)

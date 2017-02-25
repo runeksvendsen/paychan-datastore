@@ -11,7 +11,6 @@ module DB.Types
 , DBException(..)
 , DatastoreConf(..)
 , Tagged(..)
-
 )
 where
 
@@ -33,6 +32,8 @@ import qualified Control.Monad.Catch            as Catch
 import qualified Control.Monad.Base             as Base
 import           Control.Monad.IO.Class           (MonadIO)
 import           Control.Applicative              (Alternative)
+-- import qualified Control.Monad.Trans.Writer.Strict        as W
+import qualified Control.Monad.Writer.Strict              as W
 
 
 emptyQuery = query
@@ -40,25 +41,30 @@ emptyQuery = query
 runDatastore :: DatastoreConf -> Datastore a -> IO a
 runDatastore cfg d = Res.runResourceT $ liftResourceT $ R.runReaderT (unDS d) cfg
 
+
 class (Res.MonadResource m, MonadGoogle '[AuthDatastore] m) => DatastoreM m where
     getEnv          :: m (Env '[AuthDatastore])
     getPid          :: m ProjectId
-    liftDS          :: Datastore a -> m a
-    -- | Create a 'PartitionId' using the project id in 'DatastoreConf'
-    mkPartitionId   :: NamespaceId -> m PartitionId
-    mkPartitionId nsId = do
-        pid <- getPid
-        return $ partitionId &
-            piNamespaceId ?~ nsId &
-            piProjectId ?~ pid
+    getConf         :: m DatastoreConf
 
+-- | Create a 'PartitionId' using the project id in 'DatastoreConf'
+mkPartitionId   :: DatastoreM m => NamespaceId -> m PartitionId
+mkPartitionId nsId = do
+    pid <- getPid
+    return $ partitionId &
+        piNamespaceId ?~ nsId &
+        piProjectId ?~ pid
 
 instance DatastoreM Datastore where
     getEnv = dcAuthEnv <$> R.ask
     getPid = dcProjId  <$> R.ask
-    liftDS d = do
-        cfg <- R.ask
-        liftResourceT $ R.runReaderT (unDS d) cfg
+    getConf = R.ask
+
+--     liftDS d = do
+--         cfg <- R.ask
+--         liftResourceT $ R.runReaderT (unDS d) cfg
+
+
 
 mkProjectReq :: ( DatastoreM m
                 , HasProject a p )
@@ -84,6 +90,11 @@ newtype Datastore a = Datastore { unDS :: R.ReaderT DatastoreConf (Res.ResourceT
         , MonadResource
         )
 
+data DatastoreConf = DatastoreConf
+    { dcAuthEnv :: Env '[AuthDatastore]
+    , dcProjId  :: ProjectId
+    }
+
 instance Ctrl.MonadBaseControl IO Datastore where
     type StM Datastore a = a
     liftBaseWith f = Datastore $ liftBaseWith $ \g -> f (g . unDS)
@@ -94,10 +105,65 @@ instance MonadGoogle '[AuthDatastore] Datastore where
         env <- getEnv
         runGoogle env g
 
-data DatastoreConf = DatastoreConf
-    { dcAuthEnv :: Env '[AuthDatastore]
-    , dcProjId  :: ProjectId
+-- Tx
+class (DatastoreM m, Res.MonadResource m, MonadGoogle '[AuthDatastore] m) => DatastoreTxM m where
+    getTxId :: m TxId
+    getNSId :: m NamespaceId
+
+
+newtype DatastoreTx a = DatastoreTx
+    { unDSTx :: R.ReaderT TxDatastoreConf (W.WriterT CommitRequest (Res.ResourceT IO)) a
     }
+    deriving
+        ( Functor
+        , Applicative
+        , Alternative
+        , Monad
+        , R.MonadPlus
+        , MonadIO
+        , MonadThrow
+        , Catch.MonadCatch
+        , Catch.MonadMask
+        , Base.MonadBase IO
+        , R.MonadReader TxDatastoreConf
+        , W.MonadWriter CommitRequest
+        , MonadResource
+        )
+
+data TxDatastoreConf = TxDatastoreConf
+    { tdcDsConf     :: DatastoreConf
+    , tdcTxId       :: TxToken
+    , tdcNamespace  :: NamespaceId
+    }
+
+
+-- txCommit :: CommitRequest -> DatastoreTx ()
+-- txCommit = W.tell
+
+data TxToken = TxToken TxId ReleaseKey
+
+
+instance DatastoreTxM DatastoreTx where
+    getTxId = R.asks tdcTxId >>= \(TxToken txid _) -> return txid
+    getNSId = R.asks tdcNamespace
+
+-- instance Ctrl.MonadBaseControl IO DatastoreTx where
+--     type StM DatastoreTx a = a
+--     liftBaseWith f = DatastoreTx $ liftBaseWith $ \g -> f (g . unDSTx)
+--     restoreM       = DatastoreTx . restoreM
+
+instance MonadGoogle '[AuthDatastore] DatastoreTx where
+    liftGoogle g = do
+        env <- getEnv
+        runGoogle env g
+
+instance DatastoreM DatastoreTx where
+    getEnv = R.asks $ dcAuthEnv . tdcDsConf
+    getPid = R.asks $ dcProjId  . tdcDsConf
+    getConf = R.asks tdcDsConf
+
+
+
 
 data UpdateResult = Updated | NotUpdated deriving Show
 data DBException  =
@@ -107,3 +173,13 @@ data DBException  =
 
 instance Except.Exception DBException
 
+-- Orphans
+instance Monoid CommitRequest where
+    mempty = mutationReq []
+    mutReq1 `mappend` mutReq2 = mutationReq $
+        (mutReq1 ^. crMutations) ++
+        (mutReq2 ^. crMutations)
+
+mutationReq :: [Mutation] -> CommitRequest
+mutationReq mutL = commitRequest
+    & crMutations .~ mutL

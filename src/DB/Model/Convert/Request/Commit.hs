@@ -40,10 +40,10 @@ instance IsEntity a => IsMutation (Update a) a where
     getEnt (Update a) = a
 
 
-mkMutation :: IsMutation mut b
+mkMutation :: (DatastoreM m, IsMutation mut b)
            => NamespaceId
            -> mut
-           -> Datastore DS.CommitRequest
+           -> m DS.CommitRequest
 mkMutation ns m = do
     partId <- mkPartitionId ns
     return $ mutationReq
@@ -54,15 +54,7 @@ mkDelete partM k = Tagged $ mutationReq
     [ mutation & mDelete ?~ unTagged (encodeKeyPath partM k :: Tagged a DS.Key)]
 
 
-instance Monoid CommitRequest where
-    mempty = mutationReq []
-    mutReq1 `mappend` mutReq2 = mutationReq $
-        (mutReq1 ^. crMutations) ++
-        (mutReq2 ^. crMutations)
 
-mutationReq :: [Mutation] -> CommitRequest
-mutationReq mutL = commitRequest
-    & crMutations .~ mutL
 
 
 -- -- |Check entity version.

@@ -1,7 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 module LibPrelude
-(
-  module Types
+( module LibPrelude.Types
 , module Control.Lens
 , module Data.Maybe
 -- , module Ctrl
@@ -20,7 +19,7 @@ module LibPrelude
 )
 where
 
-import           Types
+import           LibPrelude.Types
 import           Control.Monad                  ((<=<), (>=>), void, forM)
 import           Control.Monad.IO.Class         (liftIO)
 import           Data.Monoid                    as Ctrl ((<>), mempty)

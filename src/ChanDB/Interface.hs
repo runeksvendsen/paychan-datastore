@@ -5,4 +5,4 @@ module ChanDB.Interface
 where
 
 import ChanDB.Interface.Spec as Export
-import ChanDB.Interface.Implementation.Datastore()
+import ChanDB.Interface.Implementation.Datastore as Export

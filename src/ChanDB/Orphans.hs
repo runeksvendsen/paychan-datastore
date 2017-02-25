@@ -5,7 +5,7 @@ import qualified PaymentChannel    as Pay
 import qualified PromissoryNote                 as Note
 import qualified Data.Aeson as JSON
 import           Data.Void                        (Void)
-import PromissoryNote                             (PromissoryNote, StoredNote, UUID)
+import PromissoryNote                             (PromissoryNote, UUID)
 
 
 instance ToValue UUID where

@@ -8,7 +8,7 @@ module DB.Model.Convert.Identifier
 where
 
 import DB.Model.Types.Identifier
-import Types
+import LibPrelude.Types
 import LibPrelude
 
 import qualified Network.Google.Datastore as DS

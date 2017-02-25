@@ -1,5 +1,5 @@
 {-# LANGUAGE DataKinds, RecordWildCards #-}
-module Types
+module LibPrelude.Types
 (
   Catch.MonadCatch
 , MonadIO

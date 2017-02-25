@@ -1,36 +1,41 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables, DeriveAnyClass, GADTs, FlexibleContexts, DataKinds #-}
 module ChanDB.Update
-(
-  withDBState
-, withDBStateNote
-)
+-- (
+--   withDBState
+-- , withDBStateNote
+-- )
 where
 
 import LibPrelude
 import           ChanDB.Orphans ()
 import           ChanDB.Types
 import           DB.Query
-import           PromissoryNote.StoredNote  (setMostRecentNote)
+import           ChanDB.Types.StoredNote  (setMostRecentNote)
 import           DB.Tx.Safe
 import           DB.Request                 (txLookup, entityQuery, getFirstResult)
 import qualified Network.Google.Datastore.Types as DS
+import Control.Monad.Trans.Control
+import Control.Monad.Base
+import           Control.Monad.Trans.Resource
 
 
 type PayChanEnt = EntityWithAnc RecvPayChan Void
 type NoteEnt    = EntityWithAnc StoredNote (Ident RecvPayChan)
 
-txGetChanState ::
-                  HasScope '[AuthDatastore] ProjectsRunQuery =>
-                  NamespaceId
-               -> TxId
+
+txGetChanState :: ( DatastoreTxM m
+                  , HasScope '[AuthDatastore] ProjectsRunQuery
+                  )
+               => NamespaceId
+--                -> TxId
                -> SendPubKey
-               -> Datastore (Either UpdateErr RecvPayChan)
-txGetChanState ns tx sendPK =
-    getRes <$> lookup
+               -> m (Either UpdateErr RecvPayChan)
+txGetChanState ns sendPK = do
+    tid <- getTxId
+    getRes <$> mkLookup tid
   where
---     lookup :: Datastore ( Either String [(JustEntity RecvPayChan, EntityVersion)] )
-    lookup = txLookup ns tx (sendPK <//> root :: WithAncestor RecvPayChan Void)
+    mkLookup tx = txLookup ns tx (sendPK <//> root :: WithAncestor RecvPayChan Void)
 
 
 getRes :: Either String [ (JustEntity a, EntityVersion) ]
@@ -40,12 +45,15 @@ getRes r =
     \(JustEntity e) -> Right e
 
 
-txGetLastNote ::  HasScope '[AuthDatastore] ProjectsRunQuery
+txGetLastNote :: ( DatastoreTxM m
+                 , HasScope '[AuthDatastore] ProjectsRunQuery
+                 )
               => NamespaceId
-              -> TxId
+--               -> TxId
               -> SendPubKey
-              -> Datastore (Maybe StoredNote)
-txGetLastNote ns tx k = do
+              -> m (Maybe StoredNote)
+txGetLastNote ns k = do
+    tx <- getTxId
     res <- entityQuery (Just ns) (Just tx) (qMostRecentNote k)
     return $ getRes' (res :: Either String [(NoteEnt, EntityVersion) ])
   where
@@ -63,68 +71,58 @@ qMostRecentNote k =
     payChanId = getIdentifier k :: Ident RecvPayChan
 
 
-withDBState :: HasScope '[AuthDatastore] ProjectsRunQuery
-            => NamespaceId
-            -> SendPubKey
-            -> (RecvPayChan -> Datastore (Either PayChanError RecvPayChan))
-            -> Datastore (Either UpdateErr RecvPayChan)
-withDBState ns sendPK f = do
-    (eitherRes,_) <- withTx $ \tx -> do
-        resE <- txGetChanState ns tx sendPK
-        -- Apply user function
-        let applyF chan = fmapL PayError <$> f chan
-        applyResult <- either (return . Left) applyF resE
-        -- Commit/rollback
-        case applyResult of
-            Left  _        -> return (applyResult, Nothing)
-            Right newState -> do
-                updChan <- mkMutation ns
-                    (Update $ EntityWithAnc newState root)
-                return ( applyResult, Just updChan )
-    return $ case eitherRes of
-        Right state -> Right state
-        Left e -> Left e
 
-withDBStateNote :: HasScope '[AuthDatastore] ProjectsRunQuery
-            => NamespaceId
-            -> SendPubKey
-            -> (   RecvPayChan
-                -> Maybe StoredNote
-                -> Datastore (Either PayChanError (RecvPayChan,StoredNote))
-               )
-            -> Datastore (Either UpdateErr StoredNote)
-withDBStateNote ns sendPK f = do
-    (eitherRes,_) <- withTx $ \tx -> do
-        resE  <- txGetChanState ns tx sendPK
-        noteM <- txGetLastNote ns tx sendPK
-        -- Apply user function
-        let applyF chan = fmapL PayError <$> f chan noteM
-        applyResult <- either (return . Left) applyF resE
-        -- Commit/rollback
-        case applyResult of
-            Left  _  ->
-                return (applyResult , Nothing)
-            Right (newState,newNote) -> do
-                updChanNotes <- mkNoteCommit ns newState newNote noteM
-                return (applyResult, Just updChanNotes)
-    return $ case eitherRes of
-        Right (_,note) -> Right note
-        Left e -> Left e
 
-mkNoteCommit :: NamespaceId
-             -> RecvPayChan
-             -> StoredNote
-             -> Maybe StoredNote
-             -> Datastore DS.CommitRequest
-mkNoteCommit ns chan newNote prevNoteM = do
-    updState    <- mkMutation ns
-        (Update $ EntityWithAnc chan root)
-    insNewNote  <- mkMutation ns $ Insert $ EntityWithAnc newNote (getIdent chan)
-    -- If there's previous note: update it so its is_tip = False
-    updPrevNote <- maybe (return mempty) updateNote prevNoteM
-    return $ updState <> insNewNote <> updPrevNote
-  where
-    updateNote n = mkMutation ns $ Update $
-        EntityWithAnc (setMostRecentNote False n)
-            (getIdent chan)
+
+-- withDBState :: ( MonadResource m
+--                , DatastoreM m
+--                , HasScope '[AuthDatastore] ProjectsBeginTransaction
+--                )
+--             => NamespaceId
+--             -> SendPubKey
+--             -> (RecvPayChan -> m (Either PayChanError RecvPayChan))
+--             -> m (Either UpdateErr RecvPayChan)
+-- withDBState ns sendPK f = do
+--     (eitherRes,_) <- withTx $ \tx -> do
+--         resE <- txGetChanState ns tx sendPK
+--         -- Apply user function
+--         let applyF chan = fmapL PayError <$> f chan
+--         applyResult <- either (return . Left) applyF resE
+--         -- Commit/rollback
+--         case applyResult of
+--             Left  _        -> return (applyResult, Nothing)
+--             Right newState -> do
+--                 updChan <- mkMutation ns
+--                     (Update $ EntityWithAnc newState root)
+--                 return ( applyResult, Just updChan )
+--     return $ case eitherRes of
+--         Right state -> Right state
+--         Left e -> Left e
+--
+-- withDBStateNote :: ( MonadResource m
+--                    , DatastoreM m
+--                    , HasScope '[AuthDatastore] ProjectsRunQuery
+--                    )
+--                 => NamespaceId
+--                 -> SendPubKey
+--                 -> (RecvPayChan -> Maybe StoredNote -> m (Either UpdateErr (RecvPayChan,StoredNote)))
+--                 -> m (Either UpdateErr StoredNote)
+-- withDBStateNote ns sendPK f = do
+--     rk@(TxToken tx _) <- txBegin
+--     resE  <- txGetChanState ns tx sendPK
+--     noteM <- txGetLastNote ns tx sendPK
+--     -- Apply user function
+--     let applyFunc chan = f chan noteM
+--     applyResult <- either (return . Left) applyFunc resE
+--     -- Commit/rollback
+--     case applyResult of
+--         Left  _  -> txFinish rk Nothing
+--         Right (newState,newNote) -> do
+--             updChanNotes <- mkNoteCommit ns newState newNote noteM
+--             txFinish rk (Just updChanNotes)
+--     return $ case applyResult of
+--         Right (_,note) -> Right note
+--         Left e -> Left e
+
+
 

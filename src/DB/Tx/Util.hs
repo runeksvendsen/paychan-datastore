@@ -8,32 +8,40 @@ module DB.Tx.Util
 )
 where
 
-import DB.Request.Util
+import DB.Request.Send
 import LibPrelude
 import DB.Types
 import qualified DB.Util.Error as Util
 
 
+log_info = putStrLn
+
 -- |Rollback. Finish the transaction without doing anything.
-txRollback :: HasScope '[AuthDatastore] ProjectsRollback =>
-           TxId
-           -> Datastore RollbackResponse
+txRollback :: ( DatastoreM m
+              , HasScope '[AuthDatastore] ProjectsRollback
+              )
+           => TxId
+           -> m RollbackResponse
 txRollback tx =
     sendReq (projectsRollback rollbackReq) >>=
-        \res -> liftIO (putStrLn "INFO: Transaction rolled back.") >> return res
+        \res -> liftIO (log_info "INFO: Transaction rolled back.") >> return res
   where
-    rollbackReq = atomically tx rollbackRequest -- rollbackRequest & rrTransaction ?~ tx
+    rollbackReq = mkAtomicReq tx rollbackRequest -- rollbackRequest & rrTransaction ?~ tx
 
 
 -- |Commit. Finish the transaction with an update.
-txCommit :: HasScope '[AuthDatastore] ProjectsCommit
+txCommit :: ( DatastoreM m
+            , HasScope '[AuthDatastore] ProjectsCommit
+            )
          => TxId
          -> CommitRequest
-         -> Datastore CommitResponse
+         -> m CommitResponse
 txCommit tx commReq =
     sendReq (projectsCommit txCommReq)
   where
-    txCommReq = atomically tx commReq -- commReq & crMode ?~ Transactional & crTransaction ?~ tx
+    txCommReq = mkAtomicReq tx commReq -- commReq & crMode ?~ Transactional & crTransaction ?~ tx
+
+
 
 
 -- |Begin transaction. The returned handle must be released safely after use,

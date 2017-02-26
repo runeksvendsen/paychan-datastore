@@ -63,20 +63,13 @@ main = do
                          , "Project ID:   " ++ cs projectId
                          , "Thread count: " ++ show numThreads
                          , "Pay    count: " ++ show payCount ++ " (per thread)" ]
-    numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->
-        paymentTest conf tstData
-    -- Query
---     DB.runDatastore conf queryTest
+--    numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->
+--        paymentTest conf tstData
+    paymentTest conf (head tstDataLst)
+    let numPayLst = [1]
+
     putStrLn $ "\n\nDone! Executed " ++ show (sum numPayLst) ++ " payments."
 
-
--- runPaymentTest :: DatastoreConf -> Pay.ChannelPairResult -> IO Int
--- runPaymentTest cfg tstData = -- DB.runDatastore cfg $ paymentTest tstData
-
-
-
--- dbCreate :: (HasScope '[AuthDatastore] ProjectsRunQuery, DatastoreM m) => DatastoreConf -> m () -> IO ()
--- dbCreate cfg runThis = DB.runDB cfg $ runThis
 
 paymentTest :: DatastoreConf -> Pay.ChannelPairResult -> IO Int
 paymentTest cfg Pay.ChannelPairResult{..} = do
@@ -89,14 +82,8 @@ paymentTest cfg Pay.ChannelPairResult{..} = do
             atomically (PayChan cfg) $ doPayChan sampleKey paym
             atomically (Clearing cfg) $ doClearing sampleKey paym
 
-
 --     _ <- DB.removeChan ns sampleKey
     return $ length res
-
--- queryTest :: Datastore ()
--- queryTest =
---     DB.selectChannels (CoveringValue 100000) >>= liftIO . print
-
 
 
 doPayChan :: Pay.SendPubKey
@@ -113,8 +100,7 @@ doClearing :: Pay.SendPubKey
           -> Pay.SignedPayment
           -> DatastoreTx StoredNote -- (Either DB.UpdateErr StoredNote)
 doClearing pk payment = do
-    (val,s) <- doPayChan pk payment
-
+    (val,s)     <- doPayChan pk payment
     noteM       <- getNewestNote pk
     (_,newNote) <- either error id <$> mkNewNote (val,s) noteM
     insertUpdNotes (pk, newNote, setMostRecentNote False <$> noteM)

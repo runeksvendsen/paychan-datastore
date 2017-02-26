@@ -83,14 +83,16 @@ tmpErrFix e =
 
 -- either (throw . InternalError) return
 
-instance HasScope '[AuthDatastore] ProjectsRunQuery => ChanDB Datastore where
+instance ChanDB Datastore where
     runDB = runDB'
     create = create'
     delete = delete'
-    selectNotes = selectNotes'
-    selectChannels = selectChannels'
     settleBegin = settleBegin'
     settleFin = settleFin'
+
+instance HasScope '[AuthDatastore] ProjectsRunQuery => ChanDBQuery Datastore where
+    selectNotes = selectNotes'
+    selectChannels = selectChannels'
 
 runDB' :: DatastoreConf -> Datastore a -> IO a
 runDB' = runDatastore

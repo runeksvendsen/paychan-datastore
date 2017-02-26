@@ -12,7 +12,7 @@ import Control.Monad.Trans.Resource
 
 
 -- | Database interface for storage of ServerPayChan and PromissoryNote
-class (Monad m, HasScope '[AuthDatastore] ProjectsRunQuery) => ChanDB m where
+class Monad m => ChanDB m where
     -- |
     runDB            :: DatastoreConf
                      -> m a
@@ -26,14 +26,6 @@ class (Monad m, HasScope '[AuthDatastore] ProjectsRunQuery) => ChanDB m where
     delete           :: SendPubKey
                      -> m ()
 
-    -- | Select channel keys by 'DBQuery' properties
-    selectChannels   :: DBQuery
-                     -> m [EntityKey RecvPayChan]
-
-    -- | Select note keys by note UUID
-    selectNotes      :: [UUID]
-                     -> m [EntityKey StoredNote]
-
     -- | Mark channel as in the process of being settled (unavailable for payment)
     settleBegin      :: [EntityKey RecvPayChan]
                      -> m [RecvPayChan]
@@ -42,6 +34,16 @@ class (Monad m, HasScope '[AuthDatastore] ProjectsRunQuery) => ChanDB m where
     --    depending on client change address).
     settleFin        :: [RecvPayChan]
                      -> m ()
+
+class (Monad m, HasScope '[AuthDatastore] ProjectsRunQuery) => ChanDBQuery m where
+  -- | Select channel keys by 'DBQuery' properties
+  selectChannels   :: DBQuery
+                   -> m [EntityKey RecvPayChan]
+
+  -- | Select note keys by note UUID
+  selectNotes      :: [UUID]
+                   -> m [EntityKey StoredNote]
+
 
 data PayChan a = PayChan a
 data Clearing a = Clearing a

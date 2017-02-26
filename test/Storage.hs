@@ -83,7 +83,7 @@ paymentTest cfg Pay.ChannelPairResult{..} = do
     let sampleRecvChan = Pay.recvChan resInitPair
         sampleKey = Pay.getSendPubKey sampleRecvChan
         paymentList = reverse $ init resPayList
-    _ <- DB.runDB cfg (DB.create sampleRecvChan :: Datastore ()) -- dbCreate cfg (DB.create sampleRecvChan :: Datastore ())
+    _ <- DB.runDatastore cfg (DB.create sampleRecvChan :: Datastore ())
     -- Safe lookup + update/rollback
     res <- M.forM paymentList $ \paym -> do
             atomically (PayChan cfg) $ doPayChan sampleKey paym

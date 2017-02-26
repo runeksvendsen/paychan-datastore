@@ -84,16 +84,16 @@ tests:
     - promissory-note-types
     - test-framework
     - test-framework-quickcheck2
-  conversion-test:
-    main: Conversion.hs
-    source-dirs: test
-    ghc-options:
-    - -main-is
-    - Conversion
-    dependencies:
-    - base
-    - paychan-datastore
-    - HUnit >=1.3
-    - QuickCheck >=2.8.2
-    - test-framework
-    - test-framework-quickcheck2
+#  conversion-test:
+#    main: Conversion.hs
+#    source-dirs: test
+#    ghc-options:
+#    - -main-is
+#    - Conversion
+#    dependencies:
+#    - base
+#    - paychan-datastore
+#    - HUnit >=1.3
+#    - QuickCheck >=2.8.2
+#    - test-framework
+#    - test-framework-quickcheck2

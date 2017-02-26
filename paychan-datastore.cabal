@@ -105,60 +105,6 @@ library
       Paths_paychan_datastore
   default-language: Haskell2010
 
-test-suite conversion-test
-  type: exitcode-stdio-1.0
-  main-is: Conversion.hs
-  hs-source-dirs:
-      test
-  default-extensions: OverloadedStrings MultiParamTypeClasses TypeSynonymInstances FlexibleInstances FlexibleContexts FunctionalDependencies DataKinds ScopedTypeVariables
-  ghc-options: -main-is Conversion
-  build-depends:
-      base >=4.7 && <5
-    , bytestring
-    , base16-bytestring
-    , text
-    , unordered-containers
-    , gogol
-    , gogol-core
-    , gogol-datastore
-    , mtl
-    , lens
-    , aeson
-    , vector
-    , scientific
-    , cereal
-    , QuickCheck
-    , string-conversions
-    , time
-    , http-conduit
-    , exceptions
-    , monad-control
-    , resourcet
-    , transformers-base
-    , transformers
-    , async
-    , errors
-    , stm
-    , stm-containers
-    , hashable
-    , base64-bytestring
-    , quickcheck-text
-    , tagged
-    , monad-logger
-    , bitcoin-payment-channel
-    , promissory-note-types
-    , rbpcp-api
-    , base
-    , paychan-datastore
-    , HUnit >=1.3
-    , QuickCheck >=2.8.2
-    , test-framework
-    , test-framework-quickcheck2
-  other-modules:
-      ArbitraryJSON
-      Storage
-  default-language: Haskell2010
-
 test-suite storage-test
   type: exitcode-stdio-1.0
   main-is: Storage.hs

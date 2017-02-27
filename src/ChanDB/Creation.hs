@@ -9,19 +9,21 @@ import DB.Tx.Safe
 import DB.Util.Error
 import DB.Model.Convert
 
+import Debug.Trace
 
 
-insertChan :: -- DatastoreM m
+insertChan :: HasScope '[AuthDatastore] ProjectsBeginTransaction =>
               NamespaceId
            -> RecvPayChan
            -> Datastore (Tagged RecvPayChan CommitResponse)
 insertChan nsId chan =
     mkMutation nsId
         (Insert $ EntityWithAnc chan root) >>=
+            \mut -> ("mkMut: " ++ show mut) `trace` return mut >>=
             runReqWithTx . Tagged
 
 
-removeChan :: -- DatastoreM m
+removeChan :: HasScope '[AuthDatastore] ProjectsBeginTransaction =>
               NamespaceId
            -> SendPubKey
            -> Datastore (Tagged RecvPayChan CommitResponse)
@@ -33,7 +35,8 @@ removeChan nsId key = do
         fullKey
 
 
-runReqWithTx :: Tagged a CommitRequest -> Datastore (Tagged a CommitResponse)
+runReqWithTx :: HasScope '[AuthDatastore] ProjectsBeginTransaction =>
+    Tagged a CommitRequest -> Datastore (Tagged a CommitResponse)
 runReqWithTx commitReq =
     withTx ( const $ return ((), Just (unTagged commitReq)) ) >>=
         \(_,responseM) -> maybe

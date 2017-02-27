@@ -12,6 +12,7 @@ import DB.Request.Send
 import LibPrelude
 import DB.Types
 import qualified DB.Util.Error as Util
+import Debug.Trace
 
 
 log_info = putStrLn
@@ -37,7 +38,7 @@ txCommit :: ( DatastoreM m
          -> CommitRequest
          -> m CommitResponse
 txCommit tx commReq =
-    sendReq (projectsCommit txCommReq)
+    "txCommit!" `trace` sendReq (projectsCommit txCommReq)
   where
     txCommReq = mkAtomicReq tx commReq -- commReq & crMode ?~ Transactional & crTransaction ?~ tx
 

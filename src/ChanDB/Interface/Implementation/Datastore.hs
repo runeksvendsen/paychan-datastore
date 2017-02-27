@@ -30,7 +30,6 @@ instance ChanDBTxRun DatastoreTx Clearing where
 
 
 instance ChanDBTx DatastoreTx where
---     atomically = runDatastoreTx
     updatePayChan chan = getNSId >>= (`commitChan'` chan)
     insertUpdNotes  = commitNote'
 
@@ -39,22 +38,8 @@ instance ChanDBTx DatastoreTx where
     getNewestNote pk = getNSId >>= (`txGetLastNote` pk)
 
 
--- instance (HasScope '[AuthDatastore] ProjectsRunQuery) => ChanDBTx DatastoreTx Clearing where
---     atomically (Clearing cfg) = runDatastoreTx cfg clearingNS
---     updatePayChan (Clearing chan) = commitChan' clearingNS chan
---     insertUpdNotes (Clearing notePair) = commitNote' notePair
---
---     -- TODO: ExceptT
---     getPayChan (Clearing pk) = txGetChanState clearingNS pk >>= tmpErrFix
---     getNewestNote (Clearing pk) = txGetLastNote clearingNS pk
-
-
--- getPayChan' :: HasNamespace c => c SendPubKey ->
--- getPayChan'
-
 commitChan' :: NamespaceId -> RecvPayChan -> DatastoreTx ()
 commitChan' ns chan = do
---     ns <- getNSId
     let updateChan = Update $ EntityWithAnc chan root
     mut <- mkMutation ns updateChan
     W.tell mut

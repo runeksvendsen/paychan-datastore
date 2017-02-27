@@ -33,9 +33,7 @@ removeChan nsId key = do
         fullKey
 
 
-runReqWithTx :: -- forall a m.
---              ( DatastoreM m )
-             Tagged a CommitRequest -> Datastore (Tagged a CommitResponse)
+runReqWithTx :: Tagged a CommitRequest -> Datastore (Tagged a CommitResponse)
 runReqWithTx commitReq =
     withTx ( const $ return ((), Just (unTagged commitReq)) ) >>=
         \(_,responseM) -> maybe

@@ -32,10 +32,6 @@ instance IsRequest BeginTransactionRequest
 class TransactionalReq a where
     mkAtomicReq :: TxId -> a -> a
 
--- data Atomically a = Atomically TxId a
-
--- instance TransactionalReq a => TransactionalReq (Atomically a) where
---     mkAtomicReq (Atomically tx r) = mkAtomicReq tx r
 
 instance TransactionalReq RollbackRequest where
     mkAtomicReq tx req = req

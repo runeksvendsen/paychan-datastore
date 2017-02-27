@@ -13,7 +13,7 @@ import           Network.Google as Google
 defaultAppDatastoreEnv :: IO (Env '[AuthDatastore])
 defaultAppDatastoreEnv = do
     manager <- HTTP.newManager HTTP.tlsManagerSettings
-    logger  <- Google.newLogger Google.Error stderr
+    logger  <- Google.newLogger Google.Debug stderr
     Google.newEnv <&>
         (envLogger .~ logger) .
         (envScopes .~ datastoreScope) .

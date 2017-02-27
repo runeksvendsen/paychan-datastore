@@ -27,6 +27,21 @@ import           System.Environment (getArgs)
 -- Query
 import Data.Time                (getCurrentTime)
 
+-- Profile
+import qualified Control.Exception as E
+import qualified Control.Concurrent as C
+import           Control.Monad (void)
+-- |Used to stop the server in case we're profiling,
+--  so that any profiling data is written to disk
+profile_selfDestruct :: IO a -> IO ()
+profile_selfDestruct ioa = do
+    tid <- C.forkIO (void $ ioa)
+    C.threadDelay 10000000
+    putStrLn $ "Killing thread " ++ show tid
+    C.throwTo tid E.UserInterrupt
+    return ()
+
+
 
 
 -- TODO: Move to bitcoin-payment-channel?
@@ -49,6 +64,8 @@ defaultThreadCount = 5
 
 main :: IO ()
 main = do
+    -- Profile
+--    C.myThreadId >>= profile_selfDestruct
     -- Command-line args
     args <- getArgs
     let numThreads = if not (null args) then read (head args) :: Int else defaultThreadCount
@@ -81,8 +98,7 @@ paymentTest cfg Pay.ChannelPairResult{..} = do
     res <- M.forM paymentList $ \paym -> do
             atomically (PayChan cfg) $ doPayChan sampleKey paym
             atomically (Clearing cfg) $ doClearing sampleKey paym
-
---     _ <- DB.removeChan ns sampleKey
+    --  _ <- DB.removeChan ns sampleKey
     return $ length res
 
 

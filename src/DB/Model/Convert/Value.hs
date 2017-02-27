@@ -32,7 +32,9 @@ instance ToValue DS.Key          where toValue = encode
 instance ToValue DS.Entity       where toValue = encode
 instance ToValue DS.ArrayValue   where toValue = encode
 instance ToValue DS.ValueNullValue where toValue = encode
-instance ToValue a => ToValue [a] where toValue = toValue . map toValue
+instance ToValue a => ToValue [a] where
+    toValue vL = toValue $ DS.arrayValue & DS.avValues .~ vals
+        where vals = map toValue vL
 
 
 instance ToValue Sci.Scientific where

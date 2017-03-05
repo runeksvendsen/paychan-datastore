@@ -38,7 +38,7 @@ txCommit :: ( DatastoreM m
          -> CommitRequest
          -> m CommitResponse
 txCommit tx commReq =
-    "txCommit!" `trace` sendReq (projectsCommit txCommReq)
+    sendReq (projectsCommit txCommReq)
   where
     txCommReq = mkAtomicReq tx commReq -- commReq & crMode ?~ Transactional & crTransaction ?~ tx
 

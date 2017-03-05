@@ -8,11 +8,11 @@ import qualified Data.Vector as V
 import Debug.Trace
 
 instance Arbitrary Value where
-  arbitrary = oneof [obj, arr] >>= \hey -> show hey `trace` return hey
+  arbitrary = oneof [obj, arr]
     where
     json = oneof [str, num, bl, nullg]
-    obj = object <$> vectorOf 1 ((.=) <$> arbitrary <*> json)
-    arr = Array . V.fromList <$> vectorOf 1 json
+    obj = object <$> vectorOf 8 ((.=) <$> arbitrary <*> json)
+    arr = Array . V.fromList <$> vectorOf 10 json
     str = String <$> arbitrary
     num = fmap Number $ scientific <$> arbitrary <*> arbitrary
     bl = Bool <$> arbitrary

@@ -16,25 +16,24 @@ import Control.Monad
 import Control.Monad.Trans.Writer.Strict        as W
 import Control.Monad.Trans.Control
 import Control.Monad.Base
-
+import qualified Control.Monad.Logger as Log
 
 
 runDatastoreTx :: HasScope '[AuthDatastore] ProjectsBeginTransaction =>
     DatastoreConf -> NamespaceId -> DatastoreTx a -> IO a
-runDatastoreTx cfg ns d =
-    putStrLn "Starting tx..." >> runDatastore cfg runTx
-  where
-    runTx = do
-        tx <- txBegin
-        liftIO . putStrLn  $ "Running writer..."
-        (a,req) <- Res.runResourceT $ liftResourceT $ do
-            let w = R.runReaderT (unDSTx d) (TxDatastoreConf cfg tx ns)
-            W.runWriterT w
-        when (req /= mempty) $ do
-            liftIO . putStrLn  $ "Finishing tx..."
-            void $ txFinish tx (Just req)
-        liftIO . putStrLn  $ "Returning..."
-        return a
+runDatastoreTx cfg ns txM =
+    runDatastore cfg (runTx cfg ns txM)
+
+runTx :: (DatastoreM m, MonadBaseControl IO m) =>
+    DatastoreConf -> NamespaceId -> DatastoreTx a -> m a
+runTx cfg ns txM = do
+    tx <- txBegin
+    (a,req) <- Res.runResourceT $ liftResourceT $ do
+        let w = R.runReaderT (unDSTx txM) (TxDatastoreConf cfg tx ns)
+        W.runWriterT w
+    when (req /= mempty) $
+        void $ txFinish tx (Just req)
+    return a
 
 
 
@@ -46,9 +45,7 @@ withTx :: ( MonadResource m
        => (TxId -> m (a, Maybe CommitRequest))
        -> m (a, Maybe CommitResponse)
 withTx f = do
-    liftIO $ putStrLn "Starting tx..."
     tk@(TxToken tx rk) <- txBegin
-    liftIO $ putStrLn "Running func..."
     (a,maybeCommReq) <- f tx
     case maybeCommReq of
         Nothing  -> release rk >> return (a,Nothing)
@@ -78,9 +75,8 @@ txFinish :: ( MonadResource m
          -> m (Maybe CommitResponse)
 txFinish (TxToken _ rk) Nothing = release rk >> return Nothing
 txFinish (TxToken tx rk) (Just req) = do
-    liftIO . putStrLn  $ "Sending commit req..."
+--    Log.logDebugN "Sending commit req..."
     resp <- txCommit tx req
-    liftIO . putStrLn  $ "Unprotecting tx..."
     _ <- unprotect rk
     return (Just resp)
 

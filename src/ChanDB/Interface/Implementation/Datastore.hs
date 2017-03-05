@@ -1,6 +1,8 @@
 {-# LANGUAGE UndecidableInstances, KindSignatures #-}
 module ChanDB.Interface.Implementation.Datastore
-
+( module ChanDB.Interface.Implementation.Datastore
+, module ChanDB.Interface.Spec
+)
 where
 
 import LibPrelude
@@ -9,6 +11,7 @@ import ChanDB.Interface.Spec
 import ChanDB.Query
 import ChanDB.Creation
 import ChanDB.Update
+import DB.Env as Env
 
 import DB.Request.Query
 import Data.Time.Clock.POSIX    (utcTimeToPOSIXSeconds)
@@ -16,27 +19,30 @@ import qualified Control.Monad.Writer.Strict        as W
 
 
 paychanNS :: NamespaceId
-paychanNS = "paychan"
+paychanNS = "paychan3"
 
 clearingNS :: NamespaceId
-clearingNS = "clearing"
+clearingNS = "clearing3"
+
+projectId :: ProjectId
+projectId = "cloudstore-test"
 
 
-instance ChanDBTxRun DatastoreTx PayChan where
-    atomically (PayChan cfg) = runDatastoreTx cfg paychanNS
+--instance ChanDBTxRun DatastoreTx DatastoreConf PayChan where
+--    atomically (PayChan cfg) = runDatastoreTx cfg paychanNS
 
-instance ChanDBTxRun DatastoreTx Clearing where
-    atomically (Clearing cfg) = runDatastoreTx cfg clearingNS
+--instance ChanDBTxRun DatastoreTx DatastoreConf Clearing where
+--    atomically (Clearing cfg) = runDatastoreTx cfg clearingNS
 
 
-instance ChanDBTx DatastoreTx where
+instance ChanDBTx DatastoreTx Datastore DatastoreConf where
     updatePayChan chan = getNSId >>= (`commitChan'` chan)
     insertUpdNotes  = commitNote'
-
     -- TODO: ExceptT
     getPayChan pk = getNSId >>= (`txGetChanState` pk) >>= tmpErrFix
     getNewestNote pk = getNSId >>= (`txGetLastNote` pk)
-
+    atomically ClearingDB cfg = runTx cfg clearingNS
+    atomically PayChanDB cfg = runTx cfg paychanNS
 
 commitChan' :: NamespaceId -> RecvPayChan -> DatastoreTx ()
 commitChan' ns chan = do
@@ -66,16 +72,20 @@ tmpErrFix e =
             throw $ InternalError (show x)
 
 
--- either (throw . InternalError) return
+instance DBHandle DatastoreConf where
+    initDB logLvl = do
+        env <- defaultAppDatastoreEnv logLvl
+        return $ DatastoreConf env projectId
 
-instance ChanDB Datastore where
+--instance ChanDBRun Datastore DatastoreConf where
+--    runDB = runDB'
+
+instance ChanDB Datastore DatastoreConf where
     runDB = runDB'
     create = create'
     delete = delete'
     settleBegin = settleBegin'
     settleFin = settleFin'
-
-instance HasScope '[AuthDatastore] ProjectsRunQuery => ChanDBQuery Datastore where
     selectNotes = selectNotes'
     selectChannels = selectChannels'
 

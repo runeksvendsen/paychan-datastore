@@ -1,7 +1,7 @@
 module DB.Model.Types.KeyPath
 (
   HasKeyPath(..)
-, WithAncestor
+, KeyWithAnc
 , EntityKey(..)
 , RootKey, VoidKey
 , rootIdent
@@ -17,6 +17,7 @@ import qualified Network.Google.Datastore.Types as DS
 
 
 class (Show a, Typeable a) => HasKeyPath a where
+    -- | Root key is right-most list element: @/a/b/c -> [c,b,a]@
     pathElems :: a -> [PathElement]
     -- | Parse element(s) from the list, return leftovers
     parseElems :: [PathElement] -> Either String (a, [PathElement])
@@ -34,22 +35,22 @@ instance Typeable a => HasKeyPath (Ident a) where
 --
 instance HasKeyPath Void where
     pathElems = const []
-    parseElems peL = Right (error "Void parse", peL)
+    parseElems peL = Right (error "HasKeyPath Void parse", peL)
 
 
--- | An identifier with an ancestor, which itself can be a 'WithAncestor'
-data WithAncestor a anc = WithAncestor (Ident a) anc
+-- | An identifier with an ancestor, which itself can be a 'KeyWithAnc'
+data KeyWithAnc a anc = KeyWithAnc (Ident a) anc
     deriving (Eq, Show, Typeable)
 
-instance (Typeable a, HasKeyPath anc) => HasKeyPath (WithAncestor a anc) where
-    pathElems (WithAncestor a anc) =
+instance (Typeable a, HasKeyPath anc) => HasKeyPath (KeyWithAnc a anc) where
+    pathElems (KeyWithAnc a anc) =
         pathElems a ++ pathElems anc
-    parseElems (pe:peL) = parseIdent pe >>= \ident ->
-        parseElems peL >>= \(anc, peL') -> Right (WithAncestor ident anc, peL')
     parseElems [] = Left $ "Parse fail: end-of-input." ++
         " Expected element of kind " ++ show (typeOf (undefined :: a))
+    parseElems (pe:peL) = parseIdent pe >>= \ident ->
+            parseElems peL >>= \(anc, peL') -> Right (KeyWithAnc ident anc, peL')
 
--- | Same as 'WithAncestor', but only knows the kind/type of the entity (types).
+-- | Same as 'KeyWithAnc', but only knows the kind/type of the entity.
 data EntityKey a = EntityKey [PathElement]
     deriving (Eq, Show)
 
@@ -73,13 +74,13 @@ rootIdent = EntityKey . mkList . unTagged . toPathElem
     where mkList a = [a]
 
 (<//>) :: Identifier a
-       => a
-       -> anc
-       -> WithAncestor b anc
-anc <//> a = WithAncestor (ident anc) a
+       => anc
+       -> a
+       -> KeyWithAnc b anc
+anc <//> a = KeyWithAnc (ident a) anc
 
 
 
 
-type RootKey a = WithAncestor a Void     -- ^ Key for root entity without an ancestor
-type VoidKey = WithAncestor Void (Ident Void)    -- ^ The uninhabited key (doesn't exist)
+type RootKey a = KeyWithAnc a Void     -- ^ Key for root entity without an ancestor
+type VoidKey = KeyWithAnc Void (Ident Void)    -- ^ The uninhabited key (doesn't exist)

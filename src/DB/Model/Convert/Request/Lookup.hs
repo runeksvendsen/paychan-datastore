@@ -54,7 +54,7 @@ parseEntityResultKey entRes = fmapL ("parseEntityResultKey: " ++) $
             Just ent -> case ent ^. DS.eKey of
                 Nothing  -> Left "Missing key"
                 Just key -> do
-                    (k,leftovers) <- parseElems (key ^. DS.kPath)
+                    (k,leftovers) <- parseElems (reverse $ key ^. DS.kPath)
                     ver <- entResVer entRes
                     if not (null leftovers) then
                             Left $ "Key not fully parsed: " ++ show (k, leftovers, key)

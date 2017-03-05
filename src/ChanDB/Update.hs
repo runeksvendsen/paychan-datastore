@@ -28,14 +28,13 @@ txGetChanState :: ( DatastoreTxM m
                   , HasScope '[AuthDatastore] ProjectsRunQuery
                   )
                => NamespaceId
---                -> TxId
                -> SendPubKey
                -> m (Either UpdateErr RecvPayChan)
 txGetChanState ns sendPK = do
     tid <- getTxId
     getRes <$> mkLookup tid
   where
-    mkLookup tx = txLookup ns tx (sendPK <//> root :: WithAncestor RecvPayChan Void)
+    mkLookup tx = txLookup ns tx (root <//> sendPK :: KeyWithAnc RecvPayChan Void)
 
 
 getRes :: Either String [ (JustEntity a, EntityVersion) ]
@@ -49,7 +48,6 @@ txGetLastNote :: ( DatastoreTxM m
                  , HasScope '[AuthDatastore] ProjectsRunQuery
                  )
               => NamespaceId
---               -> TxId
               -> SendPubKey
               -> m (Maybe StoredNote)
 txGetLastNote ns k = do

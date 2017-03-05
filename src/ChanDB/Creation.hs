@@ -19,7 +19,6 @@ insertChan :: HasScope '[AuthDatastore] ProjectsBeginTransaction =>
 insertChan nsId chan =
     mkMutation nsId
         (Insert $ EntityWithAnc chan root) >>=
-            \mut -> ("mkMut: " ++ show mut) `trace` return mut >>=
             runReqWithTx . Tagged
 
 
@@ -28,7 +27,7 @@ removeChan :: HasScope '[AuthDatastore] ProjectsBeginTransaction =>
            -> SendPubKey
            -> Datastore (Tagged RecvPayChan CommitResponse)
 removeChan nsId key = do
-    let fullKey = key <//> root :: RootKey RecvPayChan
+    let fullKey = root <//> key :: RootKey RecvPayChan
     partId <- mkPartitionId nsId
     runReqWithTx $ mkDelete
         (Just partId)

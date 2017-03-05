@@ -1,74 +1,54 @@
-{-# LANGUAGE UndecidableInstances, UndecidableSuperClasses, KindSignatures #-}
+{-# LANGUAGE UndecidableInstances, UndecidableSuperClasses, KindSignatures, FunctionalDependencies #-}
 module ChanDB.Interface.Spec
--- (
---   ChanDB(..)
--- , ChanDBTx(..)
--- , module ChanDB.Types
--- )
+( module ChanDB.Interface.Spec
+, module ChanDB.Types
+)
 where
 
 import ChanDB.Types
 import Control.Monad.Trans.Resource
 
 
+-- | Run database operations using this handle. Acquired at application startup.
+class DBHandle h where
+    initDB :: LogLevel -> IO h
+
 -- | Database interface for storage of ServerPayChan and PromissoryNote
-class Monad m => ChanDB m where
-    -- |
-    runDB            :: DatastoreConf
-                     -> m a
-                     -> IO a
-
+class (DBHandle h, Monad m) => ChanDB m h | m -> h where
+    -- | Run database operations
+    runDB           :: h -> m a -> IO a
     -- | Create new state for both PayChanServer and ClearingServer
-    create           :: RecvPayChan
-                     -> m ()
-
+    create          :: RecvPayChan -> m ()
     -- | Delete/remove state for both PayChanServer and ClearingServer
-    delete           :: SendPubKey
-                     -> m ()
-
+    delete          :: SendPubKey -> m ()
     -- | Mark channel as in the process of being settled (unavailable for payment)
-    settleBegin      :: [EntityKey RecvPayChan]
-                     -> m [RecvPayChan]
-
-    -- | Mark channel as settled (status becomes "closed" or, again, "available for payment",
+    settleBegin     :: [EntityKey RecvPayChan] -> m [RecvPayChan]
+    -- | Mark channel as settled (status becomes "closed" or, again "available for payment",
     --    depending on client change address).
-    settleFin        :: [RecvPayChan]
-                     -> m ()
-
-class (Monad m, HasScope '[AuthDatastore] ProjectsRunQuery) => ChanDBQuery m where
-  -- | Select channel keys by 'DBQuery' properties
-  selectChannels   :: DBQuery
-                   -> m [EntityKey RecvPayChan]
-
-  -- | Select note keys by note UUID
-  selectNotes      :: [UUID]
-                   -> m [EntityKey StoredNote]
+    settleFin       :: [RecvPayChan] -> m ()
+    -- | Select channel keys by 'DBQuery' properties
+    selectChannels  :: DBQuery -> m [EntityKey RecvPayChan]
+    -- | Select note keys by note UUID
+    selectNotes     :: [UUID] -> m [EntityKey StoredNote]
 
 
-data PayChan a = PayChan a
-data Clearing a = Clearing a
-class IsDBConsumer (a :: * -> *)
-instance IsDBConsumer Clearing
-instance IsDBConsumer PayChan
-
-
-class (MonadResource m) => ChanDBTx m where
---     atomically      :: DatastoreConf -> NamespaceId -> m a -> IO a
-
+-- | Atomic database operations
+class ChanDB dbM h => ChanDBTx m dbM h | m -> dbM where
     -- | Get paychan state
     getPayChan      :: SendPubKey -> m (Maybe RecvPayChan)
-
     -- | Save paychan state
     updatePayChan   :: RecvPayChan -> m ()
-
     -- | Save newly created promissory note
     --    and, for previous note if present, update isTip=False
     insertUpdNotes  :: (SendPubKey, StoredNote, Maybe StoredNote) -> m ()
-
-    -- | Get most recently issued note
+    -- | Get most recently issued note, if one exists
     getNewestNote   :: SendPubKey -> m (Maybe StoredNote)
+    -- | Atomically execute 'ChanDBTx' operations,
+    --  reducing a 'ChanDBTx' operation to a 'ChanDB' one
+    atomically      :: DBConsumer -> h -> m a -> dbM a
 
+data DBConsumer =
+    PayChanDB
+  | ClearingDB
 
-class (ChanDBTx m, IsDBConsumer c) => ChanDBTxRun m c where
-    atomically      :: c DatastoreConf -> m a -> IO a
 

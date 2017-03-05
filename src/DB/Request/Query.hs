@@ -7,6 +7,7 @@ import DB.Request.Send
 import DB.Types
 import DB.Model.Convert
 import LibPrelude
+import Control.Monad.Logger
 
 
 queryBatchEntities ::
@@ -62,6 +63,7 @@ runQueryReq txM reqT =
 
 entityQuery :: forall q e m.
            ( DatastoreM m
+--           , MonadLogger m
            , IsQuery q
            , IsEntity e
            , HasScope '[AuthDatastore] ProjectsRunQuery

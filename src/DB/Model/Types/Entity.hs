@@ -29,9 +29,10 @@ data EntityWithAnc e k = EntityWithAnc e k
 
 
 class IsEntity e where
+    -- | Root key is right-most list element: @/a/b/c -> [c,b,a]@
     entKeyPath :: e -> [DS.PathElement]
-    entProps :: e -> DS.EntityProperties
-    entDecode :: (DS.EntityProperties, [DS.PathElement]) -> Either String e
+    entProps   :: e -> DS.EntityProperties
+    entDecode  :: (DS.EntityProperties, [DS.PathElement]) -> Either String e
 
 instance HasProperties a => IsEntity (JustEntity a) where
     entProps (JustEntity e) =
@@ -46,7 +47,8 @@ instance (Identifier a, HasProperties a, HasKeyPath k, Show k) => IsEntity (Enti
     entKeyPath (EntityWithAnc e k) = identPathElem e : pathElems k
     entDecode (props, peL) =
         decodeEntProps (props ^. DS.epAddtional) >>= \ent ->
-        parseElems (init peL) >>= \(k, leftovers) ->
+        -- First PathElement is entity key
+        parseElems (tail peL) >>= \(k, leftovers) ->
         if not (null leftovers) then
             Left $ "Key not fully parsed: " ++ show (k, leftovers, peL)
         else
@@ -60,7 +62,7 @@ instance IsEntity (EntityKey a) where
 mkEntity :: IsEntity e => Maybe DS.PartitionId -> e -> DS.Entity
 mkEntity partM e = DS.entity
     & DS.eKey ?~ (DS.key
-        & DS.kPath .~ entKeyPath e
+        & DS.kPath .~ reverse (entKeyPath e)
         & DS.kPartitionId .~ partM)
     & DS.eProperties ?~ entProps e
 
@@ -69,9 +71,9 @@ parseEntity :: forall e.
             => DS.Entity
             -> Either String e
 parseEntity ent = fmapL ("parseEntity:" ++) $ do
-    peL <- getKeyPath
-    eProps <- getEntProps
-    entDecode (eProps, peL)
+    keyPath <- getKeyPath
+    eProps  <- getEntProps
+    entDecode (eProps, reverse keyPath)
   where
     getEntProps = maybe
         (Left "No EntityProperties in Entity")

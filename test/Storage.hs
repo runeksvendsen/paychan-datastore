@@ -1,46 +1,20 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveAnyClass, GADTs, FlexibleContexts, DataKinds, RecordWildCards #-}
-{-# LANGUAGE UndecidableInstances, UndecidableSuperClasses, KindSignatures #-}
 module Storage where
 
-import           ChanDB as DB
--- Util
-import           Control.Monad.IO.Class         (liftIO)
-import           Control.Lens                   hiding (op)
-import           Data.String.Conversions        (cs)
-
-
-import qualified PaymentChannel.Test as Pay
-import qualified PromissoryNote.Test as Note
-import qualified PromissoryNote as Note
-
-import qualified Control.Monad as M
-import qualified Data.Time.Clock as Clock
-import           System.IO                  (stderr)
+import           Control.Monad.IO.Class     (liftIO)
 import           Test.QuickCheck            (Gen, sample', vectorOf, choose, generate)
+import           System.IO                  (stderr)
+import           System.Environment         (getArgs)
+import           Data.String.Conversions    (cs)
+import           Data.Time                  (getCurrentTime)
 
-import qualified Network.HTTP.Conduit as HTTP
-import           Network.Google as Google
-import qualified Control.Concurrent.Async as Async
-import           System.Environment (getArgs)
-
--- Query
-import Data.Time                (getCurrentTime)
-
--- Profile
-import qualified Control.Exception as E
-import qualified Control.Concurrent as C
-import           Control.Monad (void)
--- |Used to stop the server in case we're profiling,
---  so that any profiling data is written to disk
-profile_selfDestruct :: IO a -> IO ()
-profile_selfDestruct ioa = do
-    tid <- C.forkIO (void $ ioa)
-    C.threadDelay 10000000
-    putStrLn $ "Killing thread " ++ show tid
-    C.throwTo tid E.UserInterrupt
-    return ()
-
+import qualified ChanDB                     as DB
+import qualified PaymentChannel.Test        as Pay
+import qualified PromissoryNote.Test        as Note
+import qualified Control.Monad              as M
+import qualified Data.Time.Clock            as Clock
+import qualified Control.Concurrent.Async   as Async
 
 
 
@@ -53,73 +27,70 @@ genTestData numPayments = do
     Pay.runChanPair arbPair (tail amountList)
 
 
-projectId :: ProjectId
-projectId = "cloudstore-test"
-
 defaultPayCount :: Word
 defaultPayCount = 25
 
 defaultThreadCount :: Int
-defaultThreadCount = 5
+defaultThreadCount = 1
 
 main :: IO ()
 main = do
-    -- Profile
---    C.myThreadId >>= profile_selfDestruct
     -- Command-line args
     args <- getArgs
     let numThreads = if not (null args) then read (head args) :: Int else defaultThreadCount
     let payCount = if length args > 1 then read (args !! 1) :: Word else defaultPayCount
     -- Env/conf
-    storeEnv <- DB.defaultAppDatastoreEnv
-    let conf = DatastoreConf storeEnv projectId
+    dbConf <- DB.initDB DB.Debug
     -- Test data
     tstDataLst <- M.replicateM numThreads $ genTestData payCount
     -- Go!
     putStrLn . unlines $ [ ""
-                         , "Project ID:   " ++ cs projectId
                          , "Thread count: " ++ show numThreads
                          , "Pay    count: " ++ show payCount ++ " (per thread)" ]
---    numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->
---        paymentTest conf tstData
-    paymentTest conf (head tstDataLst)
-    let numPayLst = [1]
-
+    numPayLst <- Async.forConcurrently tstDataLst $ \tstData ->
+        datastoreTest dbConf tstData
     putStrLn $ "\n\nDone! Executed " ++ show (sum numPayLst) ++ " payments."
 
 
-paymentTest :: DatastoreConf -> Pay.ChannelPairResult -> IO Int
-paymentTest cfg Pay.ChannelPairResult{..} = do
+datastoreTest :: DB.DatastoreConf -> Pay.ChannelPairResult -> IO Int
+datastoreTest cfg Pay.ChannelPairResult{..} = do
     let sampleRecvChan = Pay.recvChan resInitPair
         sampleKey = Pay.getSendPubKey sampleRecvChan
         paymentList = reverse $ init resPayList
-    _ <- DB.runDatastore cfg (DB.create sampleRecvChan :: Datastore ())
+    _ <- DB.runDB cfg (DB.create sampleRecvChan :: DB.Datastore ())
     -- Safe lookup + update/rollback
     res <- M.forM paymentList $ \paym -> do
-            atomically (PayChan cfg) $ doPayChan sampleKey paym
-            atomically (Clearing cfg) $ doClearing sampleKey paym
-    --  _ <- DB.removeChan ns sampleKey
+            DB.runDB cfg $ DB.atomically DB.PayChanDB cfg
+                (payChanTest sampleKey paym :: DB.DatastoreTx (Pay.BtcAmount, DB.RecvPayChan))
+            DB.runDB cfg $ DB.atomically DB.ClearingDB cfg
+                (clearingTest sampleKey paym :: DB.DatastoreTx DB.StoredNote)
     return $ length res
 
 
-doPayChan :: Pay.SendPubKey
-          -> Pay.SignedPayment
-          -> DatastoreTx (Pay.BtcAmount, RecvPayChan)
-doPayChan pk payment = do
+payChanTest :: ( DB.MonadIO txM
+               , DB.ChanDBTx txM dbM cfg
+               ) =>
+               Pay.SendPubKey
+            -> Pay.SignedPayment
+            -> txM (Pay.BtcAmount, DB.RecvPayChan)
+payChanTest pk payment = do
     chan <- Pay.fromMaybe (error "404") <$> DB.getPayChan pk
     resE <- liftIO $ Pay.acceptPayment chan (Pay.toPaymentData payment)
     case resE of
         Right (v,s) -> DB.updatePayChan s >> return (v,s)
         Left e -> error $ "recvPayment error :( " ++ show e
 
-doClearing :: Pay.SendPubKey
-          -> Pay.SignedPayment
-          -> DatastoreTx StoredNote -- (Either DB.UpdateErr StoredNote)
-doClearing pk payment = do
-    (val,s)     <- doPayChan pk payment
-    noteM       <- getNewestNote pk
+clearingTest :: ( DB.MonadIO txM
+                , DB.ChanDBTx txM dbM cfg
+                ) =>
+                Pay.SendPubKey
+             -> Pay.SignedPayment
+             -> txM DB.StoredNote
+clearingTest pk payment = do
+    (val,s)     <- payChanTest pk payment
+    noteM       <- DB.getNewestNote pk
     (_,newNote) <- either error id <$> mkNewNote (val,s) noteM
-    insertUpdNotes (pk, newNote, setMostRecentNote False <$> noteM)
+    DB.insertUpdNotes (pk, newNote, DB.setMostRecentNote False <$> noteM)
     return newNote
   where
     mkNewNote (val,s) prevNoteM = do
@@ -128,12 +99,12 @@ doClearing pk payment = do
         return $ Right (s, newNote)
 
 
-createNewNote :: MonadIO m
+createNewNote :: DB.MonadIO m
               => Note.Amount
               -> Clock.UTCTime
               -> Pay.SignedPayment
-              -> Maybe StoredNote
-              -> m StoredNote
+              -> Maybe DB.StoredNote
+              -> m DB.StoredNote
 createNewNote val now payment prevNoteM = do
     newNote <- liftIO $ head <$> sample' (Note.arbNoteOfValueT now val)
     let noteFromPrev prevPN =

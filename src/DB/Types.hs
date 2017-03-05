@@ -34,13 +34,14 @@ import           Control.Monad.IO.Class           (MonadIO)
 import           Control.Applicative              (Alternative)
 -- import qualified Control.Monad.Trans.Writer.Strict        as W
 import qualified Control.Monad.Writer.Strict              as W
+import qualified Control.Monad.Logger as Log
 
 
 emptyQuery = query
 
 runDatastore :: DatastoreConf -> Datastore a -> IO a
-runDatastore cfg d = Res.runResourceT $ liftResourceT $ R.runReaderT (unDS d) cfg
-
+runDatastore cfg d =
+     Res.runResourceT $ liftResourceT $ R.runReaderT (Log.runStdoutLoggingT $ unDS d) cfg
 
 class (Res.MonadResource m, MonadGoogle '[AuthDatastore] m) => DatastoreM m where
     getEnv          :: m (Env '[AuthDatastore])
@@ -60,11 +61,6 @@ instance DatastoreM Datastore where
     getPid = dcProjId  <$> R.ask
     getConf = R.ask
 
---     liftDS d = do
---         cfg <- R.ask
---         liftResourceT $ R.runReaderT (unDS d) cfg
-
-
 
 mkProjectReq :: ( DatastoreM m
                 , HasProject a p )
@@ -74,13 +70,15 @@ mkProjectReq req = do
     pid <- getPid
     return $ _mkProjectReq req pid
 
-newtype Datastore a = Datastore { unDS :: R.ReaderT DatastoreConf (Res.ResourceT IO) a }
+--newtype Datastore a = Datastore { unDS :: R.ReaderT DatastoreConf (Res.ResourceT IO) a }
+newtype Datastore a = Datastore { unDS :: Log.LoggingT (R.ReaderT DatastoreConf (Res.ResourceT IO)) a }
     deriving
         ( Functor
         , Applicative
-        , Alternative
+        , Log.MonadLogger
+--        , Alternative
         , Monad
-        , R.MonadPlus
+--        , R.MonadPlus
         , MonadIO
         , MonadThrow
         , Catch.MonadCatch
@@ -104,6 +102,10 @@ instance MonadGoogle '[AuthDatastore] Datastore where
     liftGoogle g = do
         env <- getEnv
         runGoogle env g
+--
+--instance MonadLogger Datastore where
+--    monadLoggerLog a b c d = liftGoogle $ monadLoggerLog a b c d
+--
 
 -- Tx
 class (DatastoreM m, Res.MonadResource m, MonadGoogle '[AuthDatastore] m) => DatastoreTxM m where

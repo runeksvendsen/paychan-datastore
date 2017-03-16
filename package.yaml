@@ -59,11 +59,12 @@ dependencies:
 - rbpcp-api
 - http-client
 - Concurrent-Cache
+- fast-logger
 
 library:
   source-dirs: src
-  ghc-options:
-  - -Werror
+  #ghc-options:
+  #- -Werror
   exposed-modules:
   - ChanDB
   - DB.Model.Convert.Properties
@@ -77,7 +78,7 @@ tests:
 #    - FlexibleContexts
 #    - DataKinds
     ghc-options:
-    - -Werror
+    #- -Werror
     - -main-is
     - PubKey
     - -threaded
@@ -95,7 +96,7 @@ tests:
     - FlexibleContexts
     - DataKinds
     ghc-options:
-    - -Werror
+    #- -Werror
     - -main-is
     - Storage
     - -threaded
@@ -108,7 +109,7 @@ tests:
     main: Conversion.hs
     source-dirs: test
     ghc-options:
-    - -Werror
+    #- -Werror
     - -main-is
     - Conversion
     dependencies:

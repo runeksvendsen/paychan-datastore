@@ -1,8 +1,7 @@
 module PubKey where
 
+import TestPrelude
 import Test.Hspec
-import Test.QuickCheck        (Gen, sample', vectorOf, choose, generate, arbitrary)
-import Control.Exception      (bracket)
 import qualified Network.Haskoin.Test   as HTT
 import qualified Network.Haskoin.Crypto as HC
 import qualified ChanDB as DB
@@ -12,15 +11,28 @@ import qualified ChanDB as PK
     , pubKeyLookup
     , pubKeyMarkUsed
     , pubKeyDELETE
+    , KeyAtIndex(..)
+    , CurrentKey(..)
     )
 
 
 pubKeySpec :: Spec
 pubKeySpec =
   around withArbXPub $
-    describe "ChanDB PubKey" $
-      it "current key has derive_index=0 when just initialized" $ \(h,xpub) ->
-        DB.kaiIndex <$> dbRun h (PK.pubKeyCurrent xpub) `shouldReturn` 0
+    describe "current key" $ do
+      it "has derive_index=0 when just initialized" $ \(h,xpub) ->
+        PK.kaiIndex <$> dbRun h (PK.pubKeyCurrent xpub) `shouldReturn` 0
+
+      it "has derive_index=<n> after marking <n> keys as used" $ \(h,xpub) -> do
+        markCount <- fromIntegral <$> generate (choose (10,100) :: Gen Int)
+        forM_ (take (fromIntegral markCount) [0..]) (const $ getAndMarkUsed h xpub)
+        PK.kaiIndex <$> dbRun h (PK.pubKeyCurrent xpub) `shouldReturn` markCount
+
+
+getAndMarkUsed :: DB.ChanDB DB.Impl h => h -> HC.XPubKey -> IO ()
+getAndMarkUsed h xpub = do
+    kai <- dbRun h $ PK.pubKeyCurrent xpub
+    void $ dbRun h $ PK.pubKeyMarkUsed xpub (PK.kaiPubKey kai)
 
 
 dbRun :: DB.ChanDB DB.Impl h => h -> DB.Impl a -> IO a
@@ -38,7 +50,7 @@ pkCleanup h xpub = dbRun h (PK.pubKeyDELETE xpub)
 
 withArbXPub :: DB.ChanDB DB.Impl h => ((h,HC.XPubKey) -> IO ()) -> IO ()
 withArbXPub f = do
-    dbHandle <- DB.getHandle DB.Debug
+    dbHandle <- DB.getHandle stderr DB.LevelInfo
     HTT.ArbitraryXPubKey _ xpub <- generate arbitrary
     bracket
         (pkAlloc dbHandle xpub)

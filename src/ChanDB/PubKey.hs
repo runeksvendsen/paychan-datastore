@@ -49,7 +49,7 @@ initialize ns xpub = do
     let kai = mkFirstPubKey xpub
     updInsertPubKey ns xpub kai
     -- Make some noise
-    logWarnN $ cs (printf "Initialized DB for key %s" pubKeyId :: String)
+    logInfoN $ cs (printf "Initialized DB for key %s" pubKeyId :: String)
     return kai
   where
     pubKeyId :: String

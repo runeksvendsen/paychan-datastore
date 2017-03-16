@@ -20,7 +20,8 @@ module ChanDB.Types
 , Pay.BtcAmount
 , HC.XPubKey
 , UTCTime
---, T.Text
+, Handle
+, Log.LoggingT
 )
 where
 
@@ -31,7 +32,7 @@ import LibPrelude.Types
 import DB.Types
 import DB.Model.Convert as Convert
 import Data.Time.Clock (UTCTime)
-
+import System.IO     (Handle)
 import DB.Tx.Safe as Tx
 
 import           GHC.Generics
@@ -40,6 +41,7 @@ import           Data.Aeson             (FromJSON, ToJSON)
 import qualified Data.Aeson             as JSON
 import qualified Network.Haskoin.Crypto as HC
 import qualified Control.Exception      as Except
+import qualified Control.Monad.Logger   as Log
 
 import qualified PaymentChannel         as Pay
 import           PromissoryNote         (PromissoryNote, UUID, HasUUID(..))

@@ -57,9 +57,9 @@ commitNote' (pk,newNote,prevNoteM) = do
     W.tell $ insNewNote <> updPrevNote
 
 instance DBHandle DatastoreConf where
-    getHandle logLvl = do
-        env <- defaultAppDatastoreEnv logLvl
-        return $ DatastoreConf env projectId logLvl
+    getHandle h logLvl = do
+        env <- defaultAppDatastoreEnv h logLvl
+        return $ DatastoreConf env projectId logLvl h
 
 instance ChanDB Datastore DatastoreConf where
     runDB c d = fmapL DBException <$> runDatastore c d

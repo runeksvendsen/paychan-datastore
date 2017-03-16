@@ -10,6 +10,8 @@ module DB.Types
 , module X
 , DatastoreConf(..)
 , Tagged(..)
+, Handle
+, Log.LogLevel(..)
 )
 where
 
@@ -22,25 +24,47 @@ import DB.Model.Types.KeyPath as Ancestor
 import Data.Tagged (Tagged(..))
 
 import Network.Google.Datastore                 as Datastore hiding (key)
-import Network.Google                           as Google
+import Network.Google                           as Google    hiding (LogLevel)
 import Control.Monad.Trans.Resource             as Res
 import Control.Monad.Trans.Control              as Ctrl
 import Control.Monad.IO.Class                   (MonadIO)
 import Control.Applicative                      (Alternative)
+import           System.IO                      (Handle)
 
 import qualified Control.Monad.Catch            as Catch
 import qualified Control.Monad.Base             as Base
 import qualified Control.Exception              as Except
 import qualified Control.Monad.Reader           as R
 import qualified Control.Monad.Writer.Strict    as W
+-- Logging
 import qualified Control.Monad.Logger           as Log
+import qualified System.Log.FastLogger          as FLog
+import qualified Data.ByteString.Char8          as S8
+
 
 
 emptyQuery = query
 
 runDatastore :: DatastoreConf -> Datastore a -> IO (Either DBException a)
 runDatastore cfg d =
-     Res.runResourceT $ Catch.try $ liftResourceT $ R.runReaderT (Log.runStdoutLoggingT $ unDS d) cfg
+    Res.runResourceT $ Catch.try $ liftResourceT $ R.runReaderT (runDSLogging cfg $ unDS d) cfg
+
+runDSLogging cfg lM = Log.runLoggingT lM $ logDefaultOutput (dcLogHandle cfg)
+
+
+logDefaultOutput :: Handle
+              -> Log.Loc
+              -> Log.LogSource
+              -> Log.LogLevel
+              -> Log.LogStr
+              -> IO ()
+logDefaultOutput h loc src level msg =
+    S8.hPutStr h ls
+  where
+    ls = FLog.fromLogStr $ Log.defaultLogStr loc src level msg
+
+
+
 
 -- Ctrl.MonadBaseControl IO m
 class (Res.MonadResource m, MonadGoogle '[AuthDatastore] m) => DatastoreM m where
@@ -79,9 +103,10 @@ newtype Datastore a = Datastore
         )
 
 data DatastoreConf = DatastoreConf
-    { dcAuthEnv :: Env '[AuthDatastore]
-    , dcProjId  :: ProjectId
-    , dcLogLlv  :: Google.LogLevel
+    { dcAuthEnv   :: Env '[AuthDatastore]
+    , dcProjId    :: ProjectId
+    , dcLogLevel  :: Log.LogLevel
+    , dcLogHandle :: Handle
     }
 
 instance Ctrl.MonadBaseControl IO Datastore where

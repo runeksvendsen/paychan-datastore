@@ -2,20 +2,11 @@
 {-# LANGUAGE DeriveAnyClass, GADTs, FlexibleContexts, DataKinds, RecordWildCards #-}
 module Storage where
 
-import           Control.Monad.IO.Class     (liftIO)
-import           Test.QuickCheck            (Gen, sample', vectorOf, choose, generate)
-import           System.IO                  (stderr)
-import           System.Environment         (getArgs)
-import           Data.Time                  (getCurrentTime)
-
+import TestPrelude
 import qualified ChanDB                     as DB
 import qualified PaymentChannel.Test        as Pay
 import qualified PromissoryNote.Test        as Note
-import qualified Control.Monad              as M
-import           Control.Monad
-import qualified Data.Time.Clock            as Clock
 import qualified Control.Concurrent.Async   as Async
---import qualified Control.Monad.Catch            as Catch
 
 
 -- TODO: Move to bitcoin-payment-channel?
@@ -40,9 +31,9 @@ main = do
     let numThreads = if not (null args) then read (head args) :: Int else defaultThreadCount
     let payCount = if length args > 1 then read (args !! 1) :: Word else defaultPayCount
     -- Env/conf
-    dbConf <- DB.getHandle DB.Info
+    dbConf <- DB.getHandle stderr DB.LevelInfo
     -- Test data
-    tstDataLst <- M.replicateM numThreads $ genTestData payCount
+    tstDataLst <- replicateM numThreads $ genTestData payCount
     -- Go!
     putStrLn . unlines $ [ ""
                          , "Thread count: " ++ show numThreads
@@ -62,7 +53,7 @@ datastoreTest cfg Pay.ChannelPairResult{..} = do
         paymentList = reverse $ init resPayList
     _ <- runDbRethrow cfg (DB.create sampleRecvChan :: DB.Datastore ())
     -- Safe lookup + update/rollback
-    res <- M.forM paymentList $ \paym -> do
+    res <- forM paymentList $ \paym -> do
             _ <- runDbRethrow cfg $ DB.atomically DB.PayChanDB cfg
                 (payChanTest sampleKey paym :: DB.DatastoreTx (Pay.BtcAmount, DB.RecvPayChan))
             runDbRethrow cfg $ DB.atomically DB.ClearingDB cfg
@@ -104,7 +95,7 @@ clearingTest pk payment = do
 
 createNewNote :: DB.MonadIO m
               => Note.Amount
-              -> Clock.UTCTime
+              -> UTCTime
               -> Pay.SignedPayment
               -> Maybe DB.StoredNote
               -> m DB.StoredNote

@@ -12,7 +12,7 @@ import Control.Monad.Trans.Resource
 -- | Run database operations using this handle.
 --   Acquired at application startup.
 class DBHandle h where
-    getHandle :: LogLevel -> IO h
+    getHandle :: Handle -> LogLevel -> IO h
 
 -- | Database interface for storage of ServerPayChan and PromissoryNote
 class (DBHandle h, Monad m) => ChanDB m h | m -> h where

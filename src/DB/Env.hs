@@ -4,17 +4,27 @@ module DB.Env
 where
 
 import           ChanDB.Types
-import           Control.Lens                   hiding (op)
-import           System.IO                             (stderr)
+import           Control.Lens hiding (op)
+import           System.IO                             (Handle)
+import           Network.Google       as Google
+import qualified Control.Monad.Logger as Log
 import qualified Network.HTTP.Conduit as HTTPS
 --import qualified Network.HTTP.Client as HTTP
-import           Network.Google as Google
 
 
-defaultAppDatastoreEnv :: Google.LogLevel -> IO (Env '[AuthDatastore])
-defaultAppDatastoreEnv logLvl = do
+fromMonadLog :: Log.LogLevel -> Google.LogLevel
+fromMonadLog mLL = case mLL of
+    Log.LevelDebug    -> Google.Debug
+    Log.LevelInfo     -> Google.Info
+    Log.LevelWarn     -> Google.Info
+    Log.LevelError    -> Google.Error
+    Log.LevelOther "trace" -> Google.Trace
+    Log.LevelOther _  -> Google.Info
+
+defaultAppDatastoreEnv :: Handle -> Log.LogLevel -> IO (Env '[AuthDatastore])
+defaultAppDatastoreEnv h logLvl = do
     manager <- HTTPS.newManager HTTPS.tlsManagerSettings
-    logger  <- Google.newLogger logLvl stderr
+    logger  <- Google.newLogger (fromMonadLog logLvl) h
     Google.newEnv <&>
         (envLogger .~ logger) .
         (envScopes .~ datastoreScope) .

@@ -30,7 +30,7 @@ runTx :: (DatastoreM m, MonadBaseControl IO m, HasScope '[AuthDatastore] Project
 runTx cfg ns txM = do
     tx <- txBegin
     (a,req) <- Res.runResourceT $ liftResourceT $ do
-        let w = R.runReaderT (Log.runStdoutLoggingT $ unDSTx txM) (TxDatastoreConf cfg tx ns)
+        let w = R.runReaderT (runDSLogging cfg $ unDSTx txM) (TxDatastoreConf cfg tx ns)
         W.runWriterT w
     when (req /= mempty) $
         void $ txFinish tx (Just req)

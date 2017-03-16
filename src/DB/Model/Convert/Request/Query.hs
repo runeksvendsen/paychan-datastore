@@ -4,7 +4,7 @@ module DB.Model.Convert.Request.Query where
 import DB.Model.Types.Query
 import DB.Model.Convert.Request.Lookup (parseEntityResult, parseEntityResultKey)
 import DB.Types
-import DB.Util.Error
+import DB.Error.Util
 import DB.Model.Convert.Entity
 import LibPrelude
 import Text.Printf
@@ -32,62 +32,52 @@ mkQueryReq nsM q = do
 
 parseQueryRes :: IsEntity e
               => DS.RunQueryResponse
-              -> Either String [ (e, EntityVersion) ]
-parseQueryRes queryRes = fmapL ("parseQueryRes: " ++) $
+              -> Either DBException [ (e, EntityVersion) ]
+parseQueryRes queryRes =
     if not (null parseErrors) then Left $ head parseErrors else Right $ rights parseRes
   where
     parseErrors = lefts parseRes
     parseRes = map (parseEntityResult . Tagged) entRes
-    entRes = maybe (internalError "QueryResultBatch must always be present.") (^. DS.qrbEntityResults)
-            (queryRes ^. rBatch)
+    entRes = maybe (internalError $ Bug "QueryResultBatch must always be present.")
+        (^. DS.qrbEntityResults)
+        (queryRes ^. rBatch)
 
 parseQueryResKeys :: HasKeyPath k
               => DS.RunQueryResponse
-              -> Either String [ (k, EntityVersion) ]
-parseQueryResKeys queryRes = fmapL ("parseQueryResKeys: " ++) $
-    parseRes >>= \parseResL ->
-        if not (null $ lefts parseResL) then
-            Left $ head (lefts parseResL)
-        else
-            Right $ rights parseResL
+              -> Either DBException [ (k, EntityVersion) ]
+parseQueryResKeys queryRes =
+    entRes queryRes >>= parseEitherRes . map parseEntityResultKey
   where
-    parseRes = entRes queryRes >>= \entL -> Right $ map parseEntityResultKey entL
-    entRes er = maybe
-        (Left "Missing QueryResultBatch")
-        (Right . (^. DS.qrbEntityResults))
-        (er ^. rBatch)
+    entRes er = fmap (^. DS.qrbEntityResults) (parseQueryBatchRes er)
 
 
-parseQueryBatchRes :: RunQueryResponse -> Either String QueryResultBatch
+parseQueryBatchRes :: RunQueryResponse -> Either DBException QueryResultBatch
 parseQueryBatchRes  qr = maybe
-    (Left "No QueryResultBatch in RunQueryResponse")
+    (Left $ InternalError $ ParseError "No QueryResultBatch in RunQueryResponse")
     Right
     (qr ^. rBatch)
 
 parseBatchResults :: QueryResultBatch
-                  -> Either String ([DS.Entity], Maybe Cursor)
-parseBatchResults qrb = fmapL ("QueryResultBatch: " ++) $
+                  -> Either DBException ([DS.Entity], Maybe Cursor)
+parseBatchResults qrb = fmapL (catErr "QueryResultBatch: ") $
     case qrb ^. qrbMoreResults of
         Just mr ->
             parseBatchEntities qrb >>=
             \entRes -> maybeNextCursor qrb mr >>=
             \cursM -> Right (entRes, cursM)
-        Nothing -> Left "Missing QueryResultBatchMoreResults"
+        Nothing -> Left $ InternalError $ ParseError "Missing QueryResultBatchMoreResults"
 
-parseBatchEntities :: QueryResultBatch -> Either String [DS.Entity]
-parseBatchEntities qrb =
-    entitiesFromResult qrb >>=
-    parseEitherRes
+parseBatchEntities :: QueryResultBatch -> Either DBException [DS.Entity]
+parseBatchEntities qrb = fmapL (catErr "parseBatchEntities: ") $
+    parseEitherRes (entitiesFromResult qrb)
   where
-    entityFromResult er = maybe (Left "No Entity in EntityResult") Right (er ^. erEntity)
+    entityFromResult er = maybe (Left $ InternalError $ ParseError "No Entity in EntityResult") Right (er ^. erEntity)
     entitiesFromResult qrb =
-        case qrb ^. qrbEntityResults of
-            []   -> Left "No EntityResults at all"
-            resL -> Right $ map entityFromResult resL
+        map entityFromResult (qrb ^. qrbEntityResults)
 
 
-maybeNextCursor :: QueryResultBatch -> QueryResultBatchMoreResults -> Either String (Maybe Cursor)
-maybeNextCursor qrb mr = fmapL ("maybeNextCursor: " ++) $
+maybeNextCursor :: QueryResultBatch -> QueryResultBatchMoreResults -> Either DBException (Maybe Cursor)
+maybeNextCursor qrb mr = fmapL (catErr "maybeNextCursor: ") $
     maybeEndCursor qrb mr >>=
     \cursM -> Right cursM
   where
@@ -95,10 +85,10 @@ maybeNextCursor qrb mr = fmapL ("maybeNextCursor: " ++) $
         NoMoreResults -> Right Nothing
         NotFinished ->
             maybe
-                (Left "No end-cursor when NotFinished")
+                (Left $ InternalError $ ParseError "No end-cursor when NotFinished")
                 (Right . Just)
                 (qrb ^. qrbEndCursor)
-        x -> Left $ "Unexpected QueryResultBatchMoreResults: " ++ show x
+        x -> Left $ InternalError $ ParseError $ "Unexpected QueryResultBatchMoreResults: " ++ show x
 
 parseEitherRes :: [Either a b] -> Either a [b]
 parseEitherRes resE =

@@ -1,4 +1,4 @@
-{-# LANGUAGE UndecidableInstances, UndecidableSuperClasses, KindSignatures, FunctionalDependencies #-}
+{-# LANGUAGE FunctionalDependencies #-}
 module ChanDB.Interface.Spec
 ( module ChanDB.Interface.Spec
 , module ChanDB.Types
@@ -9,14 +9,15 @@ import ChanDB.Types
 import Control.Monad.Trans.Resource
 
 
--- | Run database operations using this handle. Acquired at application startup.
+-- | Run database operations using this handle.
+--   Acquired at application startup.
 class DBHandle h where
-    initDB :: LogLevel -> IO h
+    getHandle :: LogLevel -> IO h
 
 -- | Database interface for storage of ServerPayChan and PromissoryNote
 class (DBHandle h, Monad m) => ChanDB m h | m -> h where
     -- | Run database operations
-    runDB           :: h -> m a -> IO a
+    runDB           :: h -> m a -> IO (Either ChanDBException a)
     -- | Create new state for both PayChanServer and ClearingServer
     create          :: RecvPayChan -> m ()
     -- | Delete/remove state for both PayChanServer and ClearingServer
@@ -30,9 +31,20 @@ class (DBHandle h, Monad m) => ChanDB m h | m -> h where
     selectChannels  :: DBQuery -> m [EntityKey RecvPayChan]
     -- | Select note keys by note UUID
     selectNotes     :: [UUID] -> m [EntityKey StoredNote]
+    -- | If it doesn't exist, initialize key index for BIP32 XPub. Return newest key.
+    pubKeySetup     :: XPubKey -> m KeyAtIndex
+    -- | Get the current public key (a client asks for server pubkey). Should be cached, to support high throughput.
+    pubKeyCurrent   :: XPubKey -> m KeyAtIndex
+    -- | Lookup pubkey index for a XPubKey-derived public key (a client is requesting to open a channel with the given pubkey)
+    pubKeyLookup    :: XPubKey -> RecvPubKey -> m (Maybe KeyAtIndex)
+    -- | Mark public key as used; return newest public key (a channel with the given pubkey was just opened)
+    pubKeyMarkUsed  :: XPubKey -> RecvPubKey -> m KeyAtIndex
+    -- | Completely delete everything for an 'XPubKey'
+    pubKeyDELETE    :: XPubKey -> m ()
 
 
--- | Atomic database operations
+
+-- | Composable, atomic database operations
 class ChanDB dbM h => ChanDBTx m dbM h | m -> dbM where
     -- | Get paychan state
     getPayChan      :: SendPubKey -> m (Maybe RecvPayChan)
@@ -44,7 +56,7 @@ class ChanDB dbM h => ChanDBTx m dbM h | m -> dbM where
     -- | Get most recently issued note, if one exists
     getNewestNote   :: SendPubKey -> m (Maybe StoredNote)
     -- | Atomically execute 'ChanDBTx' operations,
-    --  reducing a 'ChanDBTx' operation to a 'ChanDB' one
+    --    converting a 'ChanDBTx' operation to a 'ChanDB' one.
     atomically      :: DBConsumer -> h -> m a -> dbM a
 
 data DBConsumer =

@@ -53,22 +53,41 @@ dependencies:
 - quickcheck-text
 - tagged
 - monad-logger
+- haskoin-core
 - bitcoin-payment-channel
 - promissory-note-types
 - rbpcp-api
 - http-client
+- Concurrent-Cache
 
 library:
   source-dirs: src
   ghc-options:
-  - -W
-  - -Wredundant-constraints
+  - -Werror
   exposed-modules:
   - ChanDB
   - DB.Model.Convert.Properties
 
 tests:
-  storage-test:
+  pubkey:
+    main: PubKey.hs
+    source-dirs: test
+#    default-extensions:
+#    - GADTs
+#    - FlexibleContexts
+#    - DataKinds
+    ghc-options:
+    - -Werror
+    - -main-is
+    - PubKey
+    - -threaded
+    dependencies:
+    - paychan-datastore
+    - hspec
+    - test-framework
+    - test-framework-quickcheck2
+
+  storage:
     main: Storage.hs
     source-dirs: test
     default-extensions:
@@ -76,24 +95,23 @@ tests:
     - FlexibleContexts
     - DataKinds
     ghc-options:
-    - -Wall
+    - -Werror
     - -main-is
     - Storage
     - -threaded
     dependencies:
     - paychan-datastore
-    - bitcoin-payment-channel
-    - promissory-note-types
     - test-framework
     - test-framework-quickcheck2
-  conversion-test:
+
+  conversion:
     main: Conversion.hs
     source-dirs: test
     ghc-options:
+    - -Werror
     - -main-is
     - Conversion
     dependencies:
-    - base
     - paychan-datastore
     - HUnit >=1.3
     - QuickCheck >=2.8.2

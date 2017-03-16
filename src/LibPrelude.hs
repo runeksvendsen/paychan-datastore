@@ -1,47 +1,51 @@
 {-# LANGUAGE RecordWildCards #-}
 module LibPrelude
-( module LibPrelude.Types
-, module Control.Lens
-, module Data.Maybe
--- , module Ctrl
-, Except.throw
--- , fromMaybe, isJust, isNothing, fromJust, listToMaybe
+( module X
 , lefts, rights
 , liftIO
-, cs
+, cs, cshow
 , fmapL
-, (<=<), (>=>), forM
-, (<>), mempty, (</>)
+, (<=<), (>=>), forM, mapM
+, (<>), mempty
 , trace
 , void
+, Ctrl.MonadBaseControl
 , Ctrl.liftBaseOp
 , printf
+, decodeJsonObject
+, Typeable
 )
 where
 
-import           LibPrelude.Types
-import           Control.Monad                  ((<=<), (>=>), void, forM)
-import           Control.Monad.IO.Class         (liftIO)
-import           Data.Monoid                    as Ctrl ((<>), mempty)
-import           Control.Monad.Trans.Control    as Ctrl
+import LibPrelude.Types               as X
+import Control.Monad.Catch            as X
+import Control.Monad.Logger           as X
+import Data.Maybe                     as X
+import Control.Lens                   as X hiding (op)
 
-import qualified Control.Exception as Except
+import Control.Monad                  ((<=<), (>=>), void, forM, mapM)
+import Control.Monad.IO.Class         (liftIO)
+import Data.Monoid                    as Ctrl ((<>), mempty)
+import Control.Monad.Trans.Control    as Ctrl
 
-import           Control.Lens                   hiding (op)
-import           Data.Maybe                     -- (listToMaybe, fromMaybe, isJust, isNothing, fromJust)
-import           Data.Either                    (lefts, rights)
-import           Data.String.Conversions        (cs)
-import           Data.EitherR                   (fmapL)
-import           Data.Tagged (Tagged(..))
-import           Text.Printf (printf)
+import Data.Either                    (lefts, rights)
+import Data.String.Conversions        (cs)
+import Data.EitherR                   (fmapL)
+import Data.Tagged                    (Tagged(..))
+import Text.Printf                    (printf)
+import Data.Typeable                  (Typeable)
+
+import qualified Data.Text as T
 
 import Debug.Trace (trace)
+import qualified Data.Aeson             as JSON
 
 
+cshow :: Show a => a -> T.Text
+cshow = cs . show
 
-(</>) :: Monoid a
-      => Tagged b a
-      -> Tagged c a
-      -> Tagged c a
-tg1 </> tg2 = Tagged $ unTagged tg1 <> unTagged tg2
-
+decodeJsonObject :: forall a. JSON.FromJSON a => JSON.Object -> Either String a
+decodeJsonObject props =
+    case JSON.fromJSON $ JSON.Object props of
+        JSON.Success a -> Right a
+        JSON.Error e   -> Left e

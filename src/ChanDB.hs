@@ -1,22 +1,20 @@
 module ChanDB
-(
-  module ChanDB.Types
-, module ChanDB.Types.StoredNote
-, module ChanDB.Interface
-, module Update
-, module Error
-, insertChan, removeChan
-
+( module Ex
+, Impl
+, insertChan
+, removeChan
 )
 where
 
-import ChanDB.Interface
-import ChanDB.Types
-import ChanDB.Types.StoredNote
+import ChanDB.Interface as Ex
+import ChanDB.Types as Ex
+import ChanDB.Types.StoredNote as Ex
 
-import DB.Util.Error as Error
+import DB.Error.Util as Ex
 
 import ChanDB.Creation      (insertChan, removeChan)
-import ChanDB.Update    as Update
+import ChanDB.Update    as Ex
+import ChanDB.PubKey    as Ex
 import           PromissoryNote                   (PromissoryNote, UUID)
 
+type Impl = Datastore

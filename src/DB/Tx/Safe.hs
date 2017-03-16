@@ -7,6 +7,7 @@ module DB.Tx.Safe
 where
 
 import LibPrelude
+import DB.Error
 import DB.Tx.Util
 import DB.Types
 import qualified Control.Monad.Catch as      Catch
@@ -20,21 +21,26 @@ import qualified Control.Monad.Logger as Log
 
 
 runDatastoreTx :: HasScope '[AuthDatastore] ProjectsBeginTransaction =>
-    DatastoreConf -> NamespaceId -> DatastoreTx a -> IO a
+    DatastoreConf -> NamespaceId -> DatastoreTx a -> IO (Either DBException a)
 runDatastoreTx cfg ns txM =
     runDatastore cfg (runTx cfg ns txM)
 
-runTx :: (DatastoreM m, MonadBaseControl IO m) =>
+runTx :: (DatastoreM m, MonadBaseControl IO m, HasScope '[AuthDatastore] ProjectsBeginTransaction) =>
     DatastoreConf -> NamespaceId -> DatastoreTx a -> m a
 runTx cfg ns txM = do
     tx <- txBegin
     (a,req) <- Res.runResourceT $ liftResourceT $ do
-        let w = R.runReaderT (unDSTx txM) (TxDatastoreConf cfg tx ns)
+        let w = R.runReaderT (Log.runStdoutLoggingT $ unDSTx txM) (TxDatastoreConf cfg tx ns)
         W.runWriterT w
     when (req /= mempty) $
         void $ txFinish tx (Just req)
     return a
 
+liftTx :: (DatastoreM m, MonadBaseControl IO m, HasScope '[AuthDatastore] ProjectsBeginTransaction) =>
+    NamespaceId -> DatastoreTx a -> m a
+liftTx ns txM = do
+    cfg <- getConf
+    runTx cfg ns txM
 
 
 
@@ -62,7 +68,7 @@ txBegin :: ( MonadResource m
 txBegin = do
     cfg <- getConf
     (rk,tx) <- allocate
-        (runDatastore cfg txBeginUnsafe)
+        (throwLeft =<< runDatastore cfg txBeginUnsafe)
         (void . runDatastore cfg . txRollback)
     return $ TxToken tx rk
 

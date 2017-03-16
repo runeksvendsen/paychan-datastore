@@ -2,7 +2,7 @@
 module DB.Model.Convert.Request.Lookup where
 
 import DB.Types
-import DB.Util.Error
+import DB.Error.Util
 import DB.Model.Types.Entity
 import DB.Model.Convert.Entity
 import LibPrelude
@@ -21,46 +21,51 @@ mkLookup partM k = Tagged $ lookupRequest & lrKeys .~
 parseLookupRes :: forall e.
                   IsEntity e
                => Tagged e DS.LookupResponse
-               -> Either String [ (e, EntityVersion) ]
-parseLookupRes lookupResT = fmapL ("LookupResponse: " ++) $
+               -> Either DBException [ (e, EntityVersion) ]
+parseLookupRes lookupResT =
     if not (null parseErrors) then Left $ head parseErrors else Right $ rights parseRes
   where
     parseErrors = lefts parseRes
     parseRes = map (parseEntityResult . Tagged) $
         unTagged lookupResT ^. lrFound
 
-
 parseEntityResult :: forall e.
-                    IsEntity e
+                     IsEntity e
                   => Tagged e DS.EntityResult
-                  -> Either String (e, EntityVersion)
-parseEntityResult entResT = fmapL ("parseEntityResult: " ++) $
-    case entRes ^. erEntity of
-            Nothing  -> Left "Empty entityResult"
-            Just ent -> do
-                e <- parseEntity ent
-                ver <- entResVer entRes
-                Right (e, ver)
-    where
-          entRes = unTagged entResT
+                  -> Either DBException (e, EntityVersion)
+parseEntityResult entResT = do
+    dse <- resGetEntity entRes
+    ent <- parseEntity dse
+    ver <- entResVer entRes
+    Right (ent, ver)
+  where
+    entRes = unTagged entResT
 
 parseEntityResultKey :: forall k.
-                    HasKeyPath k
+                     HasKeyPath k
                   => DS.EntityResult
-                  -> Either String (k, EntityVersion)
-parseEntityResultKey entRes = fmapL ("parseEntityResultKey: " ++) $
-    case entRes ^. erEntity of
-            Nothing  -> Left "Empty entityResult"
-            Just ent -> case ent ^. DS.eKey of
-                Nothing  -> Left "Missing key"
-                Just key -> do
-                    (k,leftovers) <- parseElems (reverse $ key ^. DS.kPath)
-                    ver <- entResVer entRes
-                    if not (null leftovers) then
-                            Left $ "Key not fully parsed: " ++ show (k, leftovers, key)
-                        else
-                            Right (k, ver)
+                  -> Either DBException (k, EntityVersion)
+parseEntityResultKey entRes = do
+    key <- entGetKey =<< resGetEntity entRes
+    (k,leftovers) <- parseElems (reverse $ key ^. DS.kPath)
+    ver <- entResVer entRes
+    if not (null leftovers) then
+            Left $ InternalError $ ParseError $ "Key not fully parsed: " ++ show (k, leftovers, key)
+        else
+            Right (k, ver)
 
--- NB: Versioning disabled.
---  When updating to >= gogol-datastore-0.1.1, return actual version using DS.erVersion
-entResVer er = maybe (Left "EntityResult: Empty version field") Right (Just 1) -- (er ^. DS.erVersion)
+entGetKey ent =
+    case ent ^. DS.eKey of
+        Nothing -> Left $ InternalError $ ParseError "EntityResult: Missing key"
+        Just k  -> Right k
+
+resGetEntity :: DS.EntityResult -> Either DBException DS.Entity
+resGetEntity entRes =
+    case entRes ^. erEntity of
+        Nothing -> Left $ InternalError $ ParseError "EntityResult: Missing entity"
+        Just e  -> Right e
+
+entResVer er =
+    case er ^. DS.erVersion of
+        Nothing -> Left $ InternalError $ ParseError "EntityResult: Empty version field"
+        Just v  -> Right v

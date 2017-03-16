@@ -2,6 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables, DeriveAnyClass, GADTs, FlexibleContexts, DataKinds #-}
 module DB.Request.Query where
 
+import DB.Error
 import DB.Model.Types.Query
 import DB.Request.Send
 import DB.Types
@@ -24,7 +25,7 @@ queryBatchEntities ns q = do
     if null (lefts res) then
             return (rights res)
         else
-            throw . InternalError $ "streamQueryBatch parse error: " ++ show (lefts res)
+            throwM . InternalError $ ParseError $ "queryBatchEntities: " ++ show (lefts res)
 
 queryBatchEnts ::
     ( DatastoreM m
@@ -37,16 +38,15 @@ queryBatchEnts ::
 queryBatchEnts nsM query = do
     res <- runQueryReq Nothing =<< mkQueryReq nsM query
     case parseRes res of
-        Left e -> throw . InternalError $ "streamQueryBatch: " ++ e
+        Left e -> throwM e
         Right (queryEnts, Nothing)   -> return queryEnts
         Right (queryEnts, Just curs) -> loop queryEnts curs
   where
-    parseRes :: RunQueryResponse -> Either String ([Entity], Maybe Cursor)
+    parseRes :: RunQueryResponse -> Either DBException ([Entity], Maybe Cursor)
     parseRes = parseQueryBatchRes >=> parseBatchResults
     loop queryEnts curs =
         queryBatchEnts nsM (StartAtCursor curs query) >>=
         \entLstAccum -> return (queryEnts ++ entLstAccum)
-
 
 runQueryReq ::
             ( DatastoreM m
@@ -63,7 +63,6 @@ runQueryReq txM reqT =
 
 entityQuery :: forall q e m.
            ( DatastoreM m
---           , MonadLogger m
            , IsQuery q
            , IsEntity e
            , HasScope '[AuthDatastore] ProjectsRunQuery
@@ -71,10 +70,10 @@ entityQuery :: forall q e m.
           => Maybe NamespaceId
           -> Maybe TxId
           -> q
-          -> m ( Either String [(e, EntityVersion)] )
+          -> m [(e, EntityVersion)]
 entityQuery nsM txM q = do
     req <- mkQueryReq nsM q
-    parseQueryRes <$> runQueryReq txM req
+    throwLeft =<< (parseQueryRes <$> runQueryReq txM req)
 
 keysOnlyQuery :: forall q a.
                ( IsQuery q
@@ -83,10 +82,10 @@ keysOnlyQuery :: forall q a.
                )
               => Maybe NamespaceId
               -> q
-              -> Datastore ( Either String [(EntityKey a, EntityVersion)] )
+              -> Datastore [(EntityKey a, EntityVersion)]
 keysOnlyQuery nsM q = do
     req <- mkQueryReq nsM q
-    parseQueryResKeys <$> runQueryReq Nothing req
+    throwLeft =<< (parseQueryResKeys <$> runQueryReq Nothing req)
 
 
 

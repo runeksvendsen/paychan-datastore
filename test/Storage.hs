@@ -6,16 +6,16 @@ import           Control.Monad.IO.Class     (liftIO)
 import           Test.QuickCheck            (Gen, sample', vectorOf, choose, generate)
 import           System.IO                  (stderr)
 import           System.Environment         (getArgs)
-import           Data.String.Conversions    (cs)
 import           Data.Time                  (getCurrentTime)
 
 import qualified ChanDB                     as DB
 import qualified PaymentChannel.Test        as Pay
 import qualified PromissoryNote.Test        as Note
 import qualified Control.Monad              as M
+import           Control.Monad
 import qualified Data.Time.Clock            as Clock
 import qualified Control.Concurrent.Async   as Async
-
+--import qualified Control.Monad.Catch            as Catch
 
 
 -- TODO: Move to bitcoin-payment-channel?
@@ -40,7 +40,7 @@ main = do
     let numThreads = if not (null args) then read (head args) :: Int else defaultThreadCount
     let payCount = if length args > 1 then read (args !! 1) :: Word else defaultPayCount
     -- Env/conf
-    dbConf <- DB.initDB DB.Debug
+    dbConf <- DB.getHandle DB.Info
     -- Test data
     tstDataLst <- M.replicateM numThreads $ genTestData payCount
     -- Go!
@@ -51,18 +51,21 @@ main = do
         datastoreTest dbConf tstData
     putStrLn $ "\n\nDone! Executed " ++ show (sum numPayLst) ++ " payments."
 
+runDbRethrow  :: forall c m h. DB.ChanDB m h
+              => h -> m c -> IO c
+runDbRethrow cfg = DB.throwLeft <=< DB.runDB cfg
 
 datastoreTest :: DB.DatastoreConf -> Pay.ChannelPairResult -> IO Int
 datastoreTest cfg Pay.ChannelPairResult{..} = do
     let sampleRecvChan = Pay.recvChan resInitPair
         sampleKey = Pay.getSendPubKey sampleRecvChan
         paymentList = reverse $ init resPayList
-    _ <- DB.runDB cfg (DB.create sampleRecvChan :: DB.Datastore ())
+    _ <- runDbRethrow cfg (DB.create sampleRecvChan :: DB.Datastore ())
     -- Safe lookup + update/rollback
     res <- M.forM paymentList $ \paym -> do
-            DB.runDB cfg $ DB.atomically DB.PayChanDB cfg
+            _ <- runDbRethrow cfg $ DB.atomically DB.PayChanDB cfg
                 (payChanTest sampleKey paym :: DB.DatastoreTx (Pay.BtcAmount, DB.RecvPayChan))
-            DB.runDB cfg $ DB.atomically DB.ClearingDB cfg
+            runDbRethrow cfg $ DB.atomically DB.ClearingDB cfg
                 (clearingTest sampleKey paym :: DB.DatastoreTx DB.StoredNote)
     return $ length res
 

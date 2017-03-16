@@ -1,4 +1,4 @@
-{-# LANGUAGE UndecidableInstances, KindSignatures #-}
+--{-# LANGUAGE UndecidableInstances, KindSignatures #-}
 module ChanDB.Interface.Implementation.Datastore
 ( module ChanDB.Interface.Implementation.Datastore
 , module ChanDB.Interface.Spec
@@ -6,11 +6,13 @@ module ChanDB.Interface.Implementation.Datastore
 where
 
 import LibPrelude
+import Datastore
 import ChanDB.Types
 import ChanDB.Interface.Spec
 import ChanDB.Query
 import ChanDB.Creation
 import ChanDB.Update
+import ChanDB.PubKey
 import DB.Env as Env
 
 import DB.Request.Query
@@ -28,25 +30,19 @@ projectId :: ProjectId
 projectId = "cloudstore-test"
 
 
---instance ChanDBTxRun DatastoreTx DatastoreConf PayChan where
---    atomically (PayChan cfg) = runDatastoreTx cfg paychanNS
-
---instance ChanDBTxRun DatastoreTx DatastoreConf Clearing where
---    atomically (Clearing cfg) = runDatastoreTx cfg clearingNS
-
-
 instance ChanDBTx DatastoreTx Datastore DatastoreConf where
-    updatePayChan chan = getNSId >>= (`commitChan'` chan)
+    updatePayChan = commitChan'
     insertUpdNotes  = commitNote'
     -- TODO: ExceptT
-    getPayChan pk = getNSId >>= (`txGetChanState` pk) >>= tmpErrFix
-    getNewestNote pk = getNSId >>= (`txGetLastNote` pk)
+    getPayChan = txGetChanState
+    getNewestNote = txGetLastNote
     atomically ClearingDB cfg = runTx cfg clearingNS
     atomically PayChanDB cfg = runTx cfg paychanNS
 
-commitChan' :: NamespaceId -> RecvPayChan -> DatastoreTx ()
-commitChan' ns chan = do
+commitChan' :: RecvPayChan -> DatastoreTx ()
+commitChan' chan = do
     let updateChan = Update $ EntityWithAnc chan root
+    ns <- getNSId
     mut <- mkMutation ns updateChan
     W.tell mut
 
@@ -54,43 +50,32 @@ commitChan' ns chan = do
 commitNote' :: (SendPubKey, StoredNote, Maybe StoredNote) -> DatastoreTx ()
 commitNote' (pk,newNote,prevNoteM) = do
     ns <- getNSId
---     let ns = clearingNS
     insNewNote  <- mkMutation ns $ Insert $ EntityWithAnc newNote (ident pk :: Ident RecvPayChan)
     -- If there's previous note: overwrite the old version (is_tip = False)
     let updateNote note = mkMutation ns $ Update $ EntityWithAnc note (ident pk :: Ident RecvPayChan)
     updPrevNote <- maybe (return mempty) updateNote prevNoteM
     W.tell $ insNewNote <> updPrevNote
 
-tmpErrFix :: Monad m => Either UpdateErr a -> m (Maybe a)
-tmpErrFix e =
-    case e of
-        Right a ->
-            return $ Just a
-        Left ChannelNotFound ->
-            return Nothing
-        Left x ->
-            throw $ InternalError (show x)
-
-
 instance DBHandle DatastoreConf where
-    initDB logLvl = do
+    getHandle logLvl = do
         env <- defaultAppDatastoreEnv logLvl
-        return $ DatastoreConf env projectId
-
---instance ChanDBRun Datastore DatastoreConf where
---    runDB = runDB'
+        return $ DatastoreConf env projectId logLvl
 
 instance ChanDB Datastore DatastoreConf where
-    runDB = runDB'
+    runDB c d = fmapL DBException <$> runDatastore c d
     create = create'
     delete = delete'
     settleBegin = settleBegin'
     settleFin = settleFin'
     selectNotes = selectNotes'
     selectChannels = selectChannels'
+    -- XPub
+    pubKeySetup = liftTx paychanNS . getOrInitialize paychanNS
+    pubKeyCurrent = getCurrent paychanNS
+    pubKeyLookup = lookupKey paychanNS
+    pubKeyMarkUsed xp = liftTx paychanNS . markAsUsed paychanNS xp
+    pubKeyDELETE = deleteEverything paychanNS
 
-runDB' :: DatastoreConf -> Datastore a -> IO a
-runDB' = runDatastore
 
 create' :: RecvPayChan -> Datastore ()
 create' rpc = do
@@ -110,7 +95,7 @@ selectNotes' uuidL = do
     liftIO $ print keyL
     return $ concat keyL
   where
-    doQuery uid = keysOnlyQuery (Just clearingNS) (q uid) >>= failOnErr >>= getResult
+    doQuery uid = keysOnlyQuery (Just clearingNS) (q uid) >>= getResult
     q :: UUID -> OfKind StoredNote (FilterProperty UUID (KeysOnly Query))
     q uid = OfKind (undefined :: StoredNote)
         $ FilterProperty "previous_note_id" PFOEqual uid
@@ -119,12 +104,12 @@ selectNotes' uuidL = do
 
 selectChannels' :: HasScope '[AuthDatastore] ProjectsRunQuery => DBQuery -> Datastore [EntityKey RecvPayChan]
 selectChannels' GetAll =
-    keysOnlyQuery (Just paychanNS) q >>= failOnErr >>= getResult
+    keysOnlyQuery (Just paychanNS) q >>= getResult
   where
     q = OfKind (undefined :: RecvPayChan) emptyQuery
 
 selectChannels' (ExpiringBefore t) =
-    keysOnlyQuery (Just paychanNS) q >>= failOnErr >>= getResult
+    keysOnlyQuery (Just paychanNS) q >>= getResult
   where
     timestamp = round $ utcTimeToPOSIXSeconds t :: Int64
     q =   OfKind (undefined :: RecvPayChan)
@@ -135,20 +120,17 @@ selectChannels' (ExpiringBefore t) =
 selectChannels' (CoveringValue val) = do
     resL <- queryBatchEntities (Just paychanNS) q
     chanL <- case collect [] resL of
-        Left v -> return $ Left $ "Not enough available value. Have: " ++
-            show v ++ " need: " ++ show val
-        Right chL -> return $ Right chL
-    let retL = map (rootIdent . getIdent) <$> chanL :: Either String [EntityKey RecvPayChan]
-    liftIO $ print (resL :: [JustEntity RecvPayChan])
-    either (throw . InternalError) return retL
+        Left v    -> throwM $ InsufficientValue $ val - v
+        Right chL -> return chL
+    let retL = map (rootIdent . getIdent) chanL :: [EntityKey RecvPayChan]
+    return retL
   where
-    collect accum [] = Left $ map valueToMe accum
+    collect accum [] = Left $ sum $ map valueToMe accum
     collect accum (JustEntity chan:rem) =
         if sum (map valueToMe accum) >= val then
                 Right accum
             else
                 collect (chan : accum) rem
-
     q =   OfKind (undefined :: RecvPayChan)
         $ FilterProperty "metadata.mdChannelStatus" PFOEqual ("ReadyForPayment" :: Text)
         $ OrderBy "metadata.mdValueReceived" Descending emptyQuery
@@ -161,11 +143,11 @@ settleFin' :: [RecvPayChan] -> Datastore ()
 settleFin' = error "STUB"
 
 
-failOnErr :: Monad m => Either String b -> m b
-failOnErr = either (throw . InternalError) return
+--failOnErr :: Monad m => Either String b -> m b
+--failOnErr = either (throw . InternalError) return
 
-failOnErr' :: Either String b -> b
-failOnErr' = either (throw . InternalError) id
+--failOnErr' :: Either String b -> b
+--failOnErr' = either (throw . InternalError) id
 
 getResult :: Monad m => [ (EntityKey a, EntityVersion) ] -> m [ EntityKey a ]
 getResult = return . getResult'

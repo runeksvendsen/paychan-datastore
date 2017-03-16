@@ -10,6 +10,7 @@ module DB.Model.Types.Entity
 where
 
 import LibPrelude
+import DB.Error
 import DB.Model.Types
 import DB.Model.Types.Identifier
 import DB.Model.Types.KeyPath
@@ -21,7 +22,7 @@ import           Data.Void                        (Void)
 import qualified Data.HashMap.Strict    as Map
 
 
-data JustEntity e = JustEntity e
+data JustEntity e = JustEntity { justEntity :: e }
     deriving (Eq, Show)
 
 data EntityWithAnc e k = EntityWithAnc e k
@@ -32,25 +33,25 @@ class IsEntity e where
     -- | Root key is right-most list element: @/a/b/c -> [c,b,a]@
     entKeyPath :: e -> [DS.PathElement]
     entProps   :: e -> DS.EntityProperties
-    entDecode  :: (DS.EntityProperties, [DS.PathElement]) -> Either String e
+    entDecode  :: (DS.EntityProperties, [DS.PathElement]) -> Either DBException e
 
 instance HasProperties a => IsEntity (JustEntity a) where
     entProps (JustEntity e) =
         DS.entityProperties $ convertWithIndex (excludeKeys e) (encodeProps e)
     entKeyPath (JustEntity _) = []
-    entDecode (props, _) =
-        decodeEntProps (props ^. DS.epAddtional) >>= \ent ->
+    entDecode (props, _) = fmapL (UserError . ParseFail) $
+        decodeProps (fmap jsonFromDS $ props ^. DS.epAddtional) >>= \ent ->
             Right (JustEntity ent)
 
 instance (Identifier a, HasProperties a, HasKeyPath k, Show k) => IsEntity (EntityWithAnc a k) where
     entProps (EntityWithAnc e _) = entProps (JustEntity e)
     entKeyPath (EntityWithAnc e k) = identPathElem e : pathElems k
-    entDecode (props, peL) =
-        decodeEntProps (props ^. DS.epAddtional) >>= \ent ->
+    entDecode (props, peL) = let decodeProps' = fmapL (UserError . ParseFail) . decodeProps in
+        decodeProps' (fmap jsonFromDS $ props ^. DS.epAddtional) >>= \ent ->
         -- First PathElement is entity key
         parseElems (tail peL) >>= \(k, leftovers) ->
         if not (null leftovers) then
-            Left $ "Key not fully parsed: " ++ show (k, leftovers, peL)
+            Left $ InternalError $ ParseError $ "Key not fully parsed: " ++ show (k, leftovers, peL)
         else
             Right (EntityWithAnc ent k)
 
@@ -69,29 +70,31 @@ mkEntity partM e = DS.entity
 parseEntity :: forall e.
                IsEntity e
             => DS.Entity
-            -> Either String e
-parseEntity ent = fmapL ("parseEntity:" ++) $ do
+            -> Either DBException e
+parseEntity ent = fmapL (catErr "parseEntity:") $ do
     keyPath <- getKeyPath
     eProps  <- getEntProps
     entDecode (eProps, reverse keyPath)
   where
     getEntProps = maybe
-        (Left "No EntityProperties in Entity")
+        (Left $ InternalError $ ParseError "No EntityProperties in Entity")
         Right (ent ^. DS.eProperties)
     getKeyPath =
-        maybe (Left "No Key in Entity") Right (ent ^. DS.eKey) >>=
+        maybe (Left $ InternalError $ ParseError "No Key in Entity") Right (ent ^. DS.eKey) >>=
         (Right . (^. DS.kPath))
 
 
 
-class JSON.FromJSON a => HasProperties a where
+class HasProperties a where
     encodeProps :: a -> JSON.Object
+    decodeProps :: JSON.Object -> Either String a
     excludeKeys :: a -> [NoIndexKey]
     excludeKeys _ = []
 
 
-instance HasProperties Void
-    where encodeProps = const Map.empty
+instance HasProperties Void where
+    encodeProps = const Map.empty
+    decodeProps = error "Void decodeProps"
 instance JSON.FromJSON Void where
     parseJSON = mempty
 

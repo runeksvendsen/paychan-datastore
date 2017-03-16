@@ -7,6 +7,7 @@ module DB.Model.Convert.Identifier
 
 where
 
+import DB.Error
 import DB.Model.Types.Identifier
 import LibPrelude.Types
 import LibPrelude
@@ -62,8 +63,8 @@ toPathElem (Ident i) = Tagged $
     kindStr = show (typeOf (undefined :: a))
 
 
-parsePathElem :: forall a. Identifier a => Tagged a DS.PathElement -> Either String (Ident a)
-parsePathElem peT = fmapL ("PathElement: " ++) $
+parsePathElem :: forall a. Identifier a => Tagged a DS.PathElement -> Either DBException (Ident a)
+parsePathElem peT = fmapL (catErr "PathElement: ") $
     parseKind >>= check >>
         -- If a number ID is present, use that, else use name.
         either (const identNameE) Right identNumE
@@ -73,11 +74,12 @@ parsePathElem peT = fmapL ("PathElement: " ++) $
           parseNum  = labelErr "Missing ID" $ unTagged peT ^. DS.peId
           parseName = labelErr "Missing name" $ unTagged peT ^. DS.peName
           -- Type/kind check
-          labelErr e = maybe (Left (e :: String)) Right
+          labelErr e = maybe (Left $ InternalError $ ParseError (e :: String)) Right
           parseKind = labelErr "Missing kind" $ unTagged peT ^. DS.peKind
           kindStr = cs $ show (typeOf (undefined :: a))
           check k = if k == kindStr then Right k else
-                    Left $ "Type mismatch. Found " ++ cs k ++ " expected " ++ cs kindStr
+                    Left $ InternalError $ ParseError $
+                        "Type mismatch. Found " ++ cs k ++ " expected " ++ cs kindStr
 
 
 

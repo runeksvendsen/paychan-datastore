@@ -6,8 +6,8 @@ import DB.Model.Convert.Entity
 import DB.Types
 import LibPrelude
 
-import qualified Network.Google.Datastore as DS
-
+import qualified Network.Google.Datastore     as DS
+import qualified Control.Monad.Writer.Strict  as W
 
 data Insert a = Insert a
 data Upsert a = Upsert a
@@ -50,9 +50,22 @@ mkMutation ns m = do
         [ mutation & getLens m ?~ mkEntity (Just partId) (getEnt m) ]
 
 mkDelete :: HasKeyPath k => Maybe PartitionId -> k -> Tagged a DS.CommitRequest
-mkDelete partM k = Tagged $ mutationReq
-    [ mutation & mDelete ?~ unTagged (encodeKeyPath partM k :: Tagged a DS.Key)]
+mkDelete partM k = Tagged $ mutationReq [mkDeleteMut partM k]
 
+mkDeleteMut :: HasKeyPath k => Maybe PartitionId -> k -> DS.Mutation
+mkDeleteMut partM k = mutation &
+    mDelete ?~ unTagged (encodeKeyPath partM k :: Tagged a DS.Key)
+
+mkDeleteM :: (DatastoreM m, HasKeyPath k) => NamespaceId -> k -> m DS.Mutation
+mkDeleteM ns key = do
+    partId <- mkPartitionId ns
+    return $ mkDeleteMut (Just partId) key
+
+commitAdd :: (DatastoreTxM m, IsMutation mut e) => mut -> m ()
+commitAdd mut = do
+    ns  <- getNSId
+    mut <- mkMutation ns mut
+    W.tell mut
 
 
 

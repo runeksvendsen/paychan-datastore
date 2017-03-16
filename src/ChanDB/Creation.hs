@@ -6,7 +6,7 @@ import ChanDB.Orphans ()
 import ChanDB.Types
 import DB.Types
 import DB.Tx.Safe
-import DB.Util.Error
+import DB.Error.Util
 import DB.Model.Convert
 
 import Debug.Trace

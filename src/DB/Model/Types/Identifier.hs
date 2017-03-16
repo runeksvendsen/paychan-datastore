@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables, FlexibleInstances #-}
 module DB.Model.Types.Identifier where
 
--- import Types
+import DB.Error
 import LibPrelude
 import qualified Data.ByteString.Base16         as B16
 import qualified Data.Serialize                 as Bin
@@ -11,21 +11,17 @@ import           Data.Void                        (Void)
 import           Network.Google.Datastore       as DS
 
 
-data Ident a = Ident
+newtype Ident a = Ident
     { iId       :: Either Int64 Text
     } deriving (Eq, Typeable)
 
--- class Typeable a => IsKind a where
---     kindStr :: a -> Text
---     kindStr = objectType
-
 class Typeable a => Identifier a where
-    objectId    :: a -> Either Int64 Text   -- ^ Unique object identifier
+    objectId    :: a -> Either Int64 Text   -- ^ Object identifier. Valid integer range: 1-maxBound
 
 instance Typeable a => Identifier (Ident a) where
     objectId (Ident i) = i
 
-parseIdent :: Typeable a => DS.PathElement -> Either String (Ident a)
+parseIdent :: Typeable a => DS.PathElement -> Either DBException (Ident a)
 parseIdent = parsePathElem'
 
 getIdent :: forall a. Identifier a => a -> Ident a
@@ -73,8 +69,8 @@ objectType :: Typeable a => a -> Text
 objectType = cs . show . typeOf
 
 
-parsePathElem' :: forall a. Typeable a => DS.PathElement -> Either String (Ident a)
-parsePathElem' pe = fmapL ("PathElement: " ++) $
+parsePathElem' :: forall a. Typeable a => DS.PathElement -> Either DBException (Ident a)
+parsePathElem' pe = fmapL (catErr "PathElement: ") $
     parseKind >>= check >>
         -- If a number ID is present use that, else use name.
         either (const identNameE) Right identNumE
@@ -84,8 +80,8 @@ parsePathElem' pe = fmapL ("PathElement: " ++) $
           parseNum  = labelErr "Missing ID" $ pe ^. DS.peId
           parseName = labelErr "Missing name" $ pe ^. DS.peName
           -- Type/kind check
-          labelErr e = maybe (Left (e :: String)) Right
+          labelErr e = maybe (Left $ InternalError $ ParseError (e :: String)) Right
           parseKind = labelErr "Missing kind" $ pe ^. DS.peKind
           kindStr = cs $ show (typeOf (undefined :: a))
           check k = if k == kindStr then Right k else
-                    Left $ "Type mismatch. Found " ++ cs k ++ " expected " ++ cs kindStr
+                    Left $ InternalError $ ParseError $ "Type mismatch. Found " ++ cs k ++ " expected " ++ cs kindStr

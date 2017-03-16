@@ -8,12 +8,16 @@ module ChanDB.Types.StoredNote
 )
 where
 
+import LibPrelude
 import PromissoryNote.Types
 import qualified RBPCP.Types as RBPCP
+import ChanDB.Orphans ()
 
 import           GHC.Generics
-import qualified Data.Serialize as Bin
-import           Data.Aeson (FromJSON, ToJSON)
+import qualified Data.Serialize     as Bin
+import           Data.Aeson           (FromJSON, ToJSON)
+import qualified Data.Aeson         as JSON
+import Datastore                        (Identifier(..), HasProperties(..))
 
 
 data StoredNote = StoredNote
@@ -28,6 +32,13 @@ unwrapStoredNote = promissory_note
 
 instance HasUUID StoredNote where
     serializeForID StoredNote{..} = serializeForID promissory_note
+
+instance Identifier StoredNote where
+    objectId = objectId . getUUID
+
+instance HasProperties StoredNote where
+    encodeProps = (\(JSON.Object o) -> o) . JSON.toJSON
+    decodeProps = decodeJsonObject
 
 mkGenesisNote :: PromissoryNote -> RBPCP.PaymentData -> StoredNote
 mkGenesisNote pn p = StoredNote pn zeroUUID p True

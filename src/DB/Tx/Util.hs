@@ -11,7 +11,7 @@ where
 import DB.Request.Send
 import LibPrelude
 import DB.Types
-import qualified DB.Util.Error as Util
+import qualified DB.Error.Util as Util
 import Debug.Trace
 
 
@@ -40,9 +40,7 @@ txCommit :: ( DatastoreM m
 txCommit tx commReq =
     sendReq (projectsCommit txCommReq)
   where
-    txCommReq = mkAtomicReq tx commReq -- commReq & crMode ?~ Transactional & crTransaction ?~ tx
-
-
+    txCommReq = mkAtomicReq tx commReq
 
 
 -- |Begin transaction. The returned handle must be released safely after use,
@@ -53,7 +51,7 @@ txBeginUnsafe = do
     txBeginRes <- sendReq (projectsBeginTransaction beginTransactionRequest)
     case txBeginRes ^. btrTransaction of
             Just tid -> return tid
-            Nothing  -> Util.internalError $
-                "CloudStore API BUG: BeginTransactionResponse: " ++
+            Nothing  -> Util.internalError $ Bug $
+                "Datastore BeginTransactionResponse: " ++
                 "Transaction identifier not present" ++ show txBeginRes
 

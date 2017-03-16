@@ -4,7 +4,7 @@ where
 
 import Control.Monad              as X
 import Control.Exception          as X  ( bracket )
-import System.IO                  as X  ( stderr )
+import System.IO                  as X  ( stderr, stdout )
 import Data.Time.Clock            as X  ( UTCTime )
 import Control.Monad.IO.Class     as X  ( liftIO )
 import System.Environment         as X  ( getArgs )

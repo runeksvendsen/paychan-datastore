@@ -19,7 +19,7 @@ class Typeable a => Identifier a where
     objectId    :: a -> Either Int64 Text   -- ^ Object identifier. Valid integer range: 1-maxBound
 
 instance Typeable a => Identifier (Ident a) where
-    objectId (Ident i) = i
+    objectId = iId
 
 parseIdent :: Typeable a => DS.PathElement -> Either DBException (Ident a)
 parseIdent = parsePathElem'
@@ -43,16 +43,6 @@ castIdent (Ident i) = Ident i
 
 root :: Void
 root = undefined
-
--- | The only ancestor of a root entity
--- root :: Ident Void
--- root = Ident (Left 0)
-
--- instance Identifier Void where
---     objectId _ = Left 0
-
--- instance Identifier (Either Int64 Text) where
---     objectId = id
 
 encodeHex :: Bin.Serialize a => a -> Text
 encodeHex = cs . B16.encode . Bin.encode

@@ -106,7 +106,10 @@ lookupKey :: DatastoreM m
           -> RecvPubKey
           -> m (Maybe KeyAtIndex)
 lookupKey ns xpub findKey =
-    firstEntRes <$> lookup' ns (pkDBKey xpub findKey)
+    firstEntRes <$> lookup' ns lookupKey
+  where
+    lookupKey :: KeyWithAnc KeyAtIndex (Ident HC.XPubKey)
+    lookupKey = ident xpub <//> findKey
 
 currKeyGet :: LookupM m (KeyWithAnc CurrentKey (Ident XPubKey)) (JustEntity CurrentKey)
            => NamespaceId
@@ -146,7 +149,7 @@ deleteEverything ns xpub = do
 firstEntRes = fmap justEntity . getFirstResult
 
 -- | Get the database key for something stored under an 'HC.XPubKey'
-pkDBKey :: forall ent m.
+pkDBKey :: forall ent.
     ( Identifier ent
     , HasKeyPath (KeyWithAnc ent (Ident HC.XPubKey))
     ) =>

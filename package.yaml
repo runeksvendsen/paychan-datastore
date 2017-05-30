@@ -19,6 +19,7 @@ default-extensions:
 - FunctionalDependencies
 - DataKinds
 - ScopedTypeVariables
+- TemplateHaskell
 
 dependencies:
 - base >=4.7 && <5
@@ -60,6 +61,7 @@ dependencies:
 - http-client
 - Concurrent-Cache
 - fast-logger
+- either
 
 library:
   source-dirs: src

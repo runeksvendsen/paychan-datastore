@@ -49,14 +49,16 @@ runDbRethrow cfg = DB.throwLeft <=< DB.runDB cfg
 datastoreTest :: DB.DatastoreConf -> Pay.ChannelPairResult -> IO Int
 datastoreTest cfg Pay.ChannelPairResult{..} = do
     let sampleRecvChan = Pay.recvChan resInitPair
-        sampleKey = Pay.getSendPubKey sampleRecvChan
+        sampleKey = Pay.getSecret sampleRecvChan
         paymentList = reverse $ init resPayList
     _ <- runDbRethrow cfg (DB.create sampleRecvChan :: DB.Datastore ())
+    -- TMP
+    DB.runDB cfg (DB.create sampleRecvChan :: DB.Datastore ()) >>= print
     -- Safe lookup + update/rollback
     res <- forM paymentList $ \paym -> do
-            _ <- runDbRethrow cfg $ DB.atomically DB.PayChanDB cfg
+            _ <- runDbRethrow cfg $ DB.liftDbTx DB.PayChanDB cfg
                 (payChanTest sampleKey paym :: DB.DatastoreTx (Pay.BtcAmount, DB.RecvPayChan))
-            runDbRethrow cfg $ DB.atomically DB.ClearingDB cfg
+            runDbRethrow cfg $ DB.liftDbTx DB.ClearingDB cfg
                 (clearingTest sampleKey paym :: DB.DatastoreTx DB.StoredNote)
     return $ length res
 
@@ -64,20 +66,20 @@ datastoreTest cfg Pay.ChannelPairResult{..} = do
 payChanTest :: ( DB.MonadIO txM
                , DB.ChanDBTx txM dbM cfg
                ) =>
-               Pay.SendPubKey
+               DB.Key
             -> Pay.SignedPayment
             -> txM (Pay.BtcAmount, DB.RecvPayChan)
 payChanTest pk payment = do
     chan <- Pay.fromMaybe (error "404") <$> DB.getPayChan pk
-    resE <- liftIO $ Pay.acceptPayment chan (Pay.toPaymentData payment)
+    resE <- liftIO $ Pay.acceptPayment (Pay.toPaymentData payment) chan
     case resE of
-        Right (v,s) -> DB.updatePayChan s >> return (v,s)
+        Right (s,v) -> DB.updatePayChan s >> return (v,s)
         Left e -> error $ "recvPayment error :( " ++ show e
 
 clearingTest :: ( DB.MonadIO txM
                 , DB.ChanDBTx txM dbM cfg
                 ) =>
-                Pay.SendPubKey
+                DB.Key
              -> Pay.SignedPayment
              -> txM DB.StoredNote
 clearingTest pk payment = do

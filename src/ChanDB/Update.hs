@@ -26,7 +26,7 @@ type NoteEnt    = EntityWithAnc StoredNote (Ident RecvPayChan)
 txGetChanState :: ( DatastoreTxM m
                   , HasScope '[AuthDatastore] ProjectsRunQuery
                   )
-               => SendPubKey
+               => Key
                -> m (Maybe RecvPayChan)
 txGetChanState sendPK = do
     let key = root <//> sendPK :: KeyWithAnc RecvPayChan Void
@@ -37,7 +37,7 @@ txGetChanState sendPK = do
 txGetLastNote :: ( DatastoreTxM m
                  , HasScope '[AuthDatastore] ProjectsRunQuery
                  )
-              => SendPubKey
+              => Key
               -> m (Maybe StoredNote)
 txGetLastNote k = do
     tx  <- getTxId
@@ -48,7 +48,7 @@ txGetLastNote k = do
 ancEntRes :: [(EntityWithAnc a k, EntityVersion)] -> Maybe a
 ancEntRes = fmap (\(EntityWithAnc e _) -> e) . getFirstResult
 
-qMostRecentNote :: SendPubKey
+qMostRecentNote :: Key
                 -> AncestorQuery RecvPayChan (OfKind StoredNote (FilterProperty Bool Query))
 qMostRecentNote k =
       AncestorQuery payChanId

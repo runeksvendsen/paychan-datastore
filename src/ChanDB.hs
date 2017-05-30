@@ -1,6 +1,6 @@
 module ChanDB
 ( module Ex
-, Impl
+, Impl, TxImpl, ConfImpl
 , insertChan
 , removeChan
 )
@@ -18,3 +18,5 @@ import ChanDB.PubKey    as Ex
 import           PromissoryNote                   (PromissoryNote, UUID)
 
 type Impl = Datastore
+type TxImpl = DatastoreTx
+type ConfImpl = DatastoreConf

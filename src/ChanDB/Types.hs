@@ -18,6 +18,9 @@ module ChanDB.Types
 , Pay.PayChanError
 , Pay.KeyDeriveIndex
 , Pay.BtcAmount
+, Pay.External(..)
+, Pay.ChildPub(..)
+, Pay.PairPub(..)
 , HC.XPubKey
 , UTCTime
 , Handle
@@ -42,18 +45,24 @@ import qualified Data.Aeson             as JSON
 import qualified Network.Haskoin.Crypto as HC
 import qualified Control.Exception      as Except
 import qualified Control.Monad.Logger   as Log
-
+import Control.Monad.Trans.Either       as X
 import qualified PaymentChannel         as Pay
 import           PromissoryNote         (PromissoryNote, UUID, HasUUID(..))
 --import qualified Data.Text              as T
 import Text.Printf
 
 
+type Key = Pay.SharedSecret
+
 data ChanDBException =
     DBException DBException
   | MissingXPub HC.XPubKey      -- ^ Database not initialized for XPub
   | InsufficientValue { cdbeValueMissing :: Pay.BtcAmount }
       deriving (Eq, Show)
+
+instance HasNotFound ChanDBException where
+    is404 (DBException e) = is404 e
+    is404 _ = False
 
 instance Except.Exception ChanDBException
 
@@ -69,8 +78,6 @@ instance Show UpdateErr where
         printf "Value of payment (%s) does not equal desired note value (%s)."
         (show payVal) (show specVal)
     show ChannelNotFound = "No such channel"
-
--- type Key = Pay.SendPubKey
 
 -- | Translates into a GQL query
 data DBQuery =

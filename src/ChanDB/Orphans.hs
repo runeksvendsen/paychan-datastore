@@ -30,20 +30,20 @@ instance HasUUID HC.XPubKey where
 type RecvPayChan = Pay.ServerPayChanX
 
 -- Identifiers
-instance Identifier SendPubKey where
+instance Identifier Pay.SharedSecret where
     objectId = Right . encodeHex
 
 instance Identifier UUID where
     objectId = Right . encodeHex
 
 instance Identifier RecvPayChan where
-    objectId = objectId . Pay.getSendPubKey
+    objectId = objectId . Pay.getSecret
 
 instance Identifier PromissoryNote where
     objectId = objectId . Note.getUUID
 
-instance Identifier HC.XPubKey where
-    objectId = objectId . getUUID
+instance Identifier (Pay.External Pay.ChildPub) where
+    objectId = objectId . getUUID . Pay.pairPub
 
 instance Identifier Pay.KeyDeriveIndex where
     -- "Left 0" is not a valid identifier, so we start at 1
@@ -59,7 +59,7 @@ instance FromValue Pay.KeyDeriveIndex where
     fromValue val = fromIntegral <$> (fromValue val :: Maybe Int64)
 
 -- Entities
-instance HasIdentifier RecvPayChan SendPubKey
+instance HasIdentifier RecvPayChan Pay.SharedSecret
 instance HasIdentifier PromissoryNote UUID
 
 

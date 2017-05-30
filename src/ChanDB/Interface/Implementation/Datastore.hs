@@ -29,32 +29,9 @@ clearingNS = "clearing3"
 projectId :: ProjectId
 projectId = "cloudstore-test"
 
-
-instance ChanDBTx DatastoreTx Datastore DatastoreConf where
-    updatePayChan = commitChan'
-    insertUpdNotes  = commitNote'
-    -- TODO: ExceptT
-    getPayChan = txGetChanState
-    getNewestNote = txGetLastNote
-    atomically ClearingDB cfg = runTx cfg clearingNS
-    atomically PayChanDB cfg = runTx cfg paychanNS
-
-commitChan' :: RecvPayChan -> DatastoreTx ()
-commitChan' chan = do
-    let updateChan = Update $ EntityWithAnc chan root
-    ns <- getNSId
-    mut <- mkMutation ns updateChan
-    W.tell mut
-
-
-commitNote' :: (SendPubKey, StoredNote, Maybe StoredNote) -> DatastoreTx ()
-commitNote' (pk,newNote,prevNoteM) = do
-    ns <- getNSId
-    insNewNote  <- mkMutation ns $ Insert $ EntityWithAnc newNote (ident pk :: Ident RecvPayChan)
-    -- If there's previous note: overwrite the old version (is_tip = False)
-    let updateNote note = mkMutation ns $ Update $ EntityWithAnc note (ident pk :: Ident RecvPayChan)
-    updPrevNote <- maybe (return mempty) updateNote prevNoteM
-    W.tell $ insNewNote <> updPrevNote
+toNamespace :: DBConsumer -> NamespaceId
+toNamespace PayChanDB = paychanNS
+toNamespace ClearingDB = clearingNS
 
 instance DBHandle DatastoreConf where
     getHandle h logLvl = do
@@ -70,23 +47,23 @@ instance ChanDB Datastore DatastoreConf where
     selectNotes = selectNotes'
     selectChannels = selectChannels'
     -- XPub
-    pubKeySetup = liftTx paychanNS . getOrInitialize paychanNS
-    pubKeyCurrent = getCurrent paychanNS
-    pubKeyLookup = lookupKey paychanNS
-    pubKeyMarkUsed xp = liftTx paychanNS . markAsUsed paychanNS xp
-    pubKeyDELETE = deleteEverything paychanNS
+    pubKeySetup = liftTx (toNamespace PayChanDB) . getOrInitialize (toNamespace PayChanDB)
+    pubKeyCurrent = getCurrent (toNamespace PayChanDB)
+    pubKeyLookup = lookupKey (toNamespace PayChanDB)
+    pubKeyMarkUsed xp = liftTx (toNamespace PayChanDB) . markAsUsed (toNamespace PayChanDB) xp
+    pubKeyDELETE = deleteEverything (toNamespace PayChanDB)
 
 
 create' :: RecvPayChan -> Datastore ()
 create' rpc = do
-    _ <- insertChan paychanNS  rpc
-    _ <- insertChan clearingNS rpc
+    _ <- insertChan (toNamespace PayChanDB)  rpc
+    _ <- insertChan (toNamespace ClearingDB) rpc
     return ()
 
-delete' :: SendPubKey -> Datastore ()
+delete' :: Key -> Datastore ()
 delete' k = do
-    _ <- removeChan paychanNS  k
-    _ <- removeChan clearingNS k
+    _ <- removeChan (toNamespace PayChanDB)  k
+    _ <- removeChan (toNamespace ClearingDB) k
     return ()
 
 selectNotes' :: HasScope '[AuthDatastore] ProjectsRunQuery => [UUID] -> Datastore [EntityKey StoredNote]
@@ -95,7 +72,7 @@ selectNotes' uuidL = do
     liftIO $ print keyL
     return $ concat keyL
   where
-    doQuery uid = keysOnlyQuery (Just clearingNS) (q uid) >>= getResult
+    doQuery uid = keysOnlyQuery (Just (toNamespace ClearingDB)) (q uid) >>= getResult
     q :: UUID -> OfKind StoredNote (FilterProperty UUID (KeysOnly Query))
     q uid = OfKind (undefined :: StoredNote)
         $ FilterProperty "previous_note_id" PFOEqual uid
@@ -104,12 +81,12 @@ selectNotes' uuidL = do
 
 selectChannels' :: HasScope '[AuthDatastore] ProjectsRunQuery => DBQuery -> Datastore [EntityKey RecvPayChan]
 selectChannels' GetAll =
-    keysOnlyQuery (Just paychanNS) q >>= getResult
+    keysOnlyQuery (Just (toNamespace PayChanDB)) q >>= getResult
   where
     q = OfKind (undefined :: RecvPayChan) emptyQuery
 
 selectChannels' (ExpiringBefore t) =
-    keysOnlyQuery (Just paychanNS) q >>= getResult
+    keysOnlyQuery (Just (toNamespace PayChanDB)) q >>= getResult
   where
     timestamp = round $ utcTimeToPOSIXSeconds t :: Int64
     q =   OfKind (undefined :: RecvPayChan)
@@ -118,7 +95,7 @@ selectChannels' (ExpiringBefore t) =
         $ OrderBy "state.pcsParameters.cpLockTime" Ascending emptyQuery
 
 selectChannels' (CoveringValue val) = do
-    resL <- queryBatchEntities (Just paychanNS) q
+    resL <- queryBatchEntities (Just (toNamespace PayChanDB)) q
     chanL <- case collect [] resL of
         Left v    -> throwM $ InsufficientValue $ val - v
         Right chL -> return chL
@@ -142,13 +119,6 @@ settleBegin' = error "STUB"
 settleFin' :: [RecvPayChan] -> Datastore ()
 settleFin' = error "STUB"
 
-
---failOnErr :: Monad m => Either String b -> m b
---failOnErr = either (throw . InternalError) return
-
---failOnErr' :: Either String b -> b
---failOnErr' = either (throw . InternalError) id
-
 getResult :: Monad m => [ (EntityKey a, EntityVersion) ] -> m [ EntityKey a ]
 getResult = return . getResult'
 
@@ -156,21 +126,27 @@ getResult' :: [ (EntityKey a, EntityVersion) ] -> [ EntityKey a ]
 getResult' = map fst
 
 
+instance ChanDBTx DatastoreTx Datastore DatastoreConf where
+    updatePayChan = commitChan'
+    insertUpdNotes  = commitNote'
+    -- TODO: ExceptT
+    getPayChan = txGetChanState
+    getNewestNote = txGetLastNote
+    liftDbTx ns cfg = runTx cfg (toNamespace ns)
+    atomically ns cfg m = fmapL DBException <$> runDatastoreTx cfg (toNamespace ns) m
 
-{-
+commitChan' :: RecvPayChan -> DatastoreTx ()
+commitChan' chan = do
+    let updateChan = Update $ EntityWithAnc chan root
+    ns <- getNSId
+    mut <- mkMutation ns updateChan
+    W.tell mut
 
-test_ :: HasScope '[AuthDatastore] ProjectsRunQuery => NamespaceId -> DatastoreConf -> IO RecvPayChan
-test_ ns cfg = atomically cfg ns something
-    where
-        something :: HasScope '[AuthDatastore] ProjectsRunQuery => DatastoreTx RecvPayChan
-        something = do
-            let pk :: SendPubKey
-                pk = undefined
-            Just chan <- getChan pk
-            Just note <- getNewestNote pk
-            commitChan chan
-            commitNote pk note
-            return chan
-
-
--}
+commitNote' :: (Key, StoredNote, Maybe StoredNote) -> DatastoreTx ()
+commitNote' (pk,newNote,prevNoteM) = do
+    ns <- getNSId
+    insNewNote  <- mkMutation ns $ Insert $ EntityWithAnc newNote (ident pk :: Ident RecvPayChan)
+    -- If there's previous note: overwrite the old version (is_tip = False)
+    let updateNote note = mkMutation ns $ Update $ EntityWithAnc note (ident pk :: Ident RecvPayChan)
+    updPrevNote <- maybe (return mempty) updateNote prevNoteM
+    W.tell $ insNewNote <> updPrevNote

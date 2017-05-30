@@ -24,7 +24,7 @@ insertChan nsId chan =
 
 removeChan :: HasScope '[AuthDatastore] ProjectsBeginTransaction =>
               NamespaceId
-           -> SendPubKey
+           -> Key
            -> Datastore (Tagged RecvPayChan CommitResponse)
 removeChan nsId key = do
     let fullKey = root <//> key :: RootKey RecvPayChan

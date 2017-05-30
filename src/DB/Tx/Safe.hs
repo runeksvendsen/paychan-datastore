@@ -17,6 +17,7 @@ import Control.Monad
 import Control.Monad.Trans.Writer.Strict        as W
 import Control.Monad.Trans.Control
 import Control.Monad.Base
+
 import qualified Control.Monad.Logger as Log
 
 
@@ -81,37 +82,11 @@ txFinish :: ( MonadResource m
          -> m (Maybe CommitResponse)
 txFinish (TxToken _ rk) Nothing = release rk >> return Nothing
 txFinish (TxToken tx rk) (Just req) = do
---    Log.logDebugN "Sending commit req..."
+    Log.logDebugN "Sending tx commit request..."
     resp <- txCommit tx req
     _ <- unprotect rk
     return (Just resp)
 
 
 
-
--- test :: IO ()
--- test cfg = do
---     tx <- runDatastore cfg $ do
---         runResourceT $
---             withTx' $ \tx -> do
---                 return (tx, Nothing)
---     putStrLn $ "Got this tx: " ++ show tx
-
-
-
-
--- withTxN :: ( Res.MonadResource m
---           , MonadGoogle '[AuthDatastore] m
---           ,    HasScope '[AuthDatastore] ProjectsBeginTransaction )
---        => NamespaceId
---        -> (TxId -> m (a, Maybe CommitRequest))
---        -> m (a, Maybe CommitResponse)
--- withTxN ns f = do
---     let rollback tx = void $ txRollback ns tx
---
---     (rk,tx) <- Res.allocate (txBeginUnsafe ns) rollback
---     (a,maybeCommReq) <- f tx
---     case maybeCommReq of
---         Nothing  -> Res.release rk >> return (a,Nothing)
---         Just req -> txCommit ns tx req >>= \resp -> return (a, Just resp)
 

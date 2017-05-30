@@ -17,13 +17,13 @@ where
 
 import LibPrelude
 import DB.Error.Types as X
-import DB.Model.Types as X
+import DB.Model.Types as X hiding (Key)
 import DB.Model.Types.Entity
 import DB.Model.Types.Request
 import DB.Model.Types.KeyPath as Ancestor
 import Data.Tagged (Tagged(..))
 
-import Network.Google.Datastore                 as Datastore hiding (key)
+import Network.Google.Datastore                 as Datastore hiding (key, Key)
 import Network.Google                           as Google    hiding (LogLevel)
 import Control.Monad.Trans.Resource             as Res
 import Control.Monad.Trans.Control              as Ctrl
@@ -40,7 +40,6 @@ import qualified Control.Monad.Writer.Strict    as W
 import qualified Control.Monad.Logger           as Log
 import qualified System.Log.FastLogger          as FLog
 import qualified Data.ByteString.Char8          as S8
-
 
 
 emptyQuery = query
@@ -67,7 +66,7 @@ logDefaultOutput h loc src level msg =
 
 
 -- Ctrl.MonadBaseControl IO m
-class (Res.MonadResource m, MonadGoogle '[AuthDatastore] m) => DatastoreM m where
+class (MonadLogger m, Res.MonadResource m, MonadGoogle '[AuthDatastore] m) => DatastoreM m where
     getEnv          :: m (Env '[AuthDatastore])
     getPid          :: m ProjectId
     getConf         :: m DatastoreConf

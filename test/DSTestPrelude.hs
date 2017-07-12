@@ -1,4 +1,4 @@
-module TestPrelude
+module DSTestPrelude
 ( module X )
 where
 

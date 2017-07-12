@@ -20,7 +20,6 @@ module ChanDB.Types
 , Pay.BtcAmount
 , Pay.External(..)
 , Pay.ChildPub(..)
-, Pay.PairPub(..)
 , HC.XPubKey
 , UTCTime
 , Handle
@@ -30,7 +29,6 @@ where
 
 import ChanDB.Orphans ()
 import ChanDB.Types.StoredNote (StoredNote)
-import ChanDB.Types.PubKey as X
 import LibPrelude.Types
 import DB.Types
 import DB.Model.Convert as Convert

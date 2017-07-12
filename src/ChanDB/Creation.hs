@@ -37,7 +37,7 @@ removeChan nsId key = do
 runReqWithTx :: HasScope '[AuthDatastore] ProjectsBeginTransaction =>
     Tagged a CommitRequest -> Datastore (Tagged a CommitResponse)
 runReqWithTx commitReq =
-    withTx ( const $ return ((), Just (unTagged commitReq)) ) >>=
+    withTx ( const $ return ((), unTagged commitReq) ) >>=
         \(_,responseM) -> maybe
            (internalErrorM "runReqWithTx: 'withTx' did not return CommitResponse")
            return

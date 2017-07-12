@@ -26,7 +26,6 @@ instance HasUUID HC.XPubKey where
         <> Bin.encode (HC.xPubParent xPub)
         <> Bin.encode (HC.xPubChain  xPub)
 
-
 type RecvPayChan = Pay.ServerPayChanX
 
 -- Identifiers
@@ -42,8 +41,11 @@ instance Identifier RecvPayChan where
 instance Identifier PromissoryNote where
     objectId = objectId . Note.getUUID
 
-instance Identifier (Pay.External Pay.ChildPub) where
-    objectId = objectId . getUUID . Pay.pairPub
+instance Identifier Pay.RootKeyId where
+    objectId = Right . encodeHex . Bin.encode
+
+instance Identifier Pay.RootPub where
+    objectId = objectId . Pay.keyId
 
 instance Identifier Pay.KeyDeriveIndex where
     -- "Left 0" is not a valid identifier, so we start at 1

@@ -6,7 +6,6 @@ module ChanDB.Interface.Spec
 where
 
 import ChanDB.Types
-import Control.Monad.Trans.Resource
 
 
 -- | Run database operations using this handle.
@@ -18,7 +17,6 @@ class DBHandle h where
 class (DBHandle h, MonadIO m) => ChanDB m h | m -> h where
     -- | Run database operations
     runDB           :: h -> m a -> IO (Either ChanDBException a)
-
     -- | Create new state for both PayChanServer and ClearingServer
     create          :: RecvPayChan -> m ()
     -- | Delete/remove state for both PayChanServer and ClearingServer
@@ -32,17 +30,6 @@ class (DBHandle h, MonadIO m) => ChanDB m h | m -> h where
     selectChannels  :: DBQuery -> m [EntityKey RecvPayChan]
     -- | Select note keys by note UUID
     selectNotes     :: [UUID] -> m [EntityKey StoredNote]
-
-    -- | If it doesn't exist, initialize key index for BIP32 XPub. Return newest key.
-    pubKeySetup     :: External ChildPub -> m KeyAtIndex
-    -- | Get the current public key (a client asks for server pubkey). Should be cached, to support high throughput.
-    pubKeyCurrent   :: External ChildPub -> m KeyAtIndex
-    -- | Lookup pubkey index for a derived public key (a client is requesting to open a channel with the given pubkey)
-    pubKeyLookup    :: External ChildPub -> RecvPubKey -> m (Maybe KeyAtIndex)
-    -- | Mark public key as used; return newest public key (a channel with the given pubkey was just opened)
-    pubKeyMarkUsed  :: External ChildPub -> RecvPubKey -> m KeyAtIndex
-    -- | Completely delete everything for an 'External ChildPub'
-    pubKeyDELETE    :: External ChildPub -> m ()
 
 
 -- | Composable, atomic database operations

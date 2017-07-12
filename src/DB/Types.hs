@@ -28,12 +28,11 @@ import Network.Google                           as Google    hiding (LogLevel)
 import Control.Monad.Trans.Resource             as Res
 import Control.Monad.Trans.Control              as Ctrl
 import Control.Monad.IO.Class                   (MonadIO)
-import Control.Applicative                      (Alternative)
 import           System.IO                      (Handle)
 
+import           Control.Monad                  (when)
 import qualified Control.Monad.Catch            as Catch
 import qualified Control.Monad.Base             as Base
-import qualified Control.Exception              as Except
 import qualified Control.Monad.Reader           as R
 import qualified Control.Monad.Writer.Strict    as W
 -- Logging
@@ -42,30 +41,30 @@ import qualified System.Log.FastLogger          as FLog
 import qualified Data.ByteString.Char8          as S8
 
 
+emptyQuery :: Query
 emptyQuery = query
 
 runDatastore :: DatastoreConf -> Datastore a -> IO (Either DBException a)
 runDatastore cfg d =
     Res.runResourceT $ Catch.try $ liftResourceT $ R.runReaderT (runDSLogging cfg $ unDS d) cfg
 
-runDSLogging cfg lM = Log.runLoggingT lM $ logDefaultOutput (dcLogHandle cfg)
+runDSLogging :: DatastoreConf -> LoggingT m a -> m a
+runDSLogging cfg lM =
+    Log.runLoggingT lM $ logDefaultOutput (dcLogHandle cfg) (dcLogLevel cfg)
 
-
-logDefaultOutput :: Handle
-              -> Log.Loc
-              -> Log.LogSource
-              -> Log.LogLevel
-              -> Log.LogStr
-              -> IO ()
-logDefaultOutput h loc src level msg =
-    S8.hPutStr h ls
+logDefaultOutput
+    :: Handle
+    -> Log.LogLevel
+    -> Log.Loc
+    -> Log.LogSource
+    -> Log.LogLevel
+    -> Log.LogStr
+    -> IO ()
+logDefaultOutput h logFilter loc src level msg =
+    when (level >= logFilter) $ S8.hPutStr h ls
   where
     ls = FLog.fromLogStr $ Log.defaultLogStr loc src level msg
 
-
-
-
--- Ctrl.MonadBaseControl IO m
 class (MonadLogger m, Res.MonadResource m, MonadGoogle '[AuthDatastore] m) => DatastoreM m where
     getEnv          :: m (Env '[AuthDatastore])
     getPid          :: m ProjectId

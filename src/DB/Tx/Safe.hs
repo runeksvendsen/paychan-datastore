@@ -26,16 +26,16 @@ runDatastoreTx :: HasScope '[AuthDatastore] ProjectsBeginTransaction =>
 runDatastoreTx cfg ns txM =
     runDatastore cfg (runTx cfg ns txM)
 
-runTx :: (DatastoreM m, MonadBaseControl IO m, HasScope '[AuthDatastore] ProjectsBeginTransaction) =>
+runTx :: forall m a. (DatastoreM m, MonadBaseControl IO m, HasScope '[AuthDatastore] ProjectsBeginTransaction) =>
     DatastoreConf -> NamespaceId -> DatastoreTx a -> m a
 runTx cfg ns txM = do
-    tx <- txBegin
-    (a,req) <- Res.runResourceT $ liftResourceT $ do
-        let w = R.runReaderT (runDSLogging cfg $ unDSTx txM) (TxDatastoreConf cfg tx ns)
-        W.runWriterT w
-    when (req /= mempty) $
-        void $ txFinish tx (Just req)
+    (a,_) <- withTx runner
     return a
+  where
+    runner :: TxToken -> m (a, CommitRequest)
+    runner tk = Res.runResourceT $ liftResourceT $ do
+         let w = R.runReaderT (runDSLogging cfg $ unDSTx txM) (TxDatastoreConf cfg tk ns)
+         W.runWriterT w
 
 liftTx :: (DatastoreM m, MonadBaseControl IO m, HasScope '[AuthDatastore] ProjectsBeginTransaction) =>
     NamespaceId -> DatastoreTx a -> m a
@@ -43,23 +43,17 @@ liftTx ns txM = do
     cfg <- getConf
     runTx cfg ns txM
 
-
-
 withTx :: ( MonadResource m
           , DatastoreM m
           , HasScope '[AuthDatastore] ProjectsBeginTransaction
           )
-       => (TxId -> m (a, Maybe CommitRequest))
+       => (TxToken -> m (a, CommitRequest))
        -> m (a, Maybe CommitResponse)
 withTx f = do
-    tk@(TxToken tx rk) <- txBegin
-    (a,maybeCommReq) <- f tx
-    case maybeCommReq of
-        Nothing  -> release rk >> return (a,Nothing)
-        Just req -> do
-            respM <- txFinish tk (Just req)
-            return (a, respM)
-
+    tk <- txBegin
+    (a,commReq) <- f tk
+    resM <- txFinish tk commReq
+    return (a,resM)
 
 txBegin :: ( MonadResource m
            , DatastoreM m
@@ -78,14 +72,16 @@ txFinish :: ( MonadResource m
             , HasScope '[AuthDatastore] ProjectsBeginTransaction
             )
          => TxToken
-         -> Maybe CommitRequest
+         -> CommitRequest
          -> m (Maybe CommitResponse)
-txFinish (TxToken _ rk) Nothing = release rk >> return Nothing
-txFinish (TxToken tx rk) (Just req) = do
-    Log.logDebugN "Sending tx commit request..."
-    resp <- txCommit tx req
-    _ <- unprotect rk
-    return (Just resp)
+txFinish (TxToken tx rk) req
+    | req == mempty =
+        release rk >> return Nothing
+    | otherwise     = do
+        Log.logDebugN "Sending tx commit request..."
+        resp <- txCommit tx req
+        _ <- unprotect rk
+        return (Just resp)
 
 
 

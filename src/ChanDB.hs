@@ -14,7 +14,6 @@ import DB.Error.Util as Ex
 
 import ChanDB.Creation      (insertChan, removeChan)
 import ChanDB.Update    as Ex
-import ChanDB.PubKey    as Ex
 import           PromissoryNote                   (PromissoryNote, UUID)
 
 type Impl = Datastore

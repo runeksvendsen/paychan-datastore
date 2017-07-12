@@ -26,7 +26,7 @@ txRollback :: ( DatastoreM m
            -> m RollbackResponse
 txRollback tx =
     sendReq (projectsRollback rollbackReq) >>=
-        \res -> Log.logInfoCS callStack "Transaction rolled back" >> return res
+        \res -> Log.logDebugCS callStack "Transaction rolled back" >> return res
   where
     rollbackReq = mkAtomicReq tx rollbackRequest
 

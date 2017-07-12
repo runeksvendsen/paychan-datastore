@@ -72,24 +72,6 @@ library:
   - DB.Model.Convert.Properties
 
 tests:
-  pubkey:
-    main: PubKey.hs
-    source-dirs: test
-#    default-extensions:
-#    - GADTs
-#    - FlexibleContexts
-#    - DataKinds
-    ghc-options:
-    #- -Werror
-    - -main-is
-    - PubKey
-    - -threaded
-    dependencies:
-    - paychan-datastore
-    - hspec
-    - test-framework
-    - test-framework-quickcheck2
-
   storage:
     main: Storage.hs
     source-dirs: test
@@ -98,7 +80,6 @@ tests:
     - FlexibleContexts
     - DataKinds
     ghc-options:
-    #- -Werror
     - -main-is
     - Storage
     - -threaded
@@ -106,7 +87,6 @@ tests:
     - paychan-datastore
     - test-framework
     - test-framework-quickcheck2
-
   conversion:
     main: Conversion.hs
     source-dirs: test

@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveAnyClass, GADTs, FlexibleContexts, DataKinds, RecordWildCards #-}
 module Storage where
 
-import TestPrelude
+import DSTestPrelude
 import qualified ChanDB                     as DB
 import qualified PaymentChannel.Test        as Pay
 import qualified PromissoryNote.Test        as Note

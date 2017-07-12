@@ -12,7 +12,6 @@ import ChanDB.Interface.Spec
 import ChanDB.Query
 import ChanDB.Creation
 import ChanDB.Update
-import ChanDB.PubKey
 import DB.Env as Env
 
 import DB.Request.Query
@@ -46,13 +45,6 @@ instance ChanDB Datastore DatastoreConf where
     settleFin = settleFin'
     selectNotes = selectNotes'
     selectChannels = selectChannels'
-    -- XPub
-    pubKeySetup = liftTx (toNamespace PayChanDB) . getOrInitialize (toNamespace PayChanDB)
-    pubKeyCurrent = getCurrent (toNamespace PayChanDB)
-    pubKeyLookup = lookupKey (toNamespace PayChanDB)
-    pubKeyMarkUsed xp = liftTx (toNamespace PayChanDB) . markAsUsed (toNamespace PayChanDB) xp
-    pubKeyDELETE = deleteEverything (toNamespace PayChanDB)
-
 
 create' :: RecvPayChan -> Datastore ()
 create' rpc = do
@@ -119,6 +111,7 @@ settleBegin' = error "STUB"
 settleFin' :: [RecvPayChan] -> Datastore ()
 settleFin' = error "STUB"
 
+-- Util
 getResult :: Monad m => [ (EntityKey a, EntityVersion) ] -> m [ EntityKey a ]
 getResult = return . getResult'
 
